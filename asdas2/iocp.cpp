@@ -193,7 +193,7 @@ void RoomInSideSendPacket(const RoomRequest& room, SOCKET client_sock)
 }
 void RoomOutSideSendPacket(const RoomRequest& room, SOCKET client_sock)
 {
-	RoomOutSide(Rooms[room.roomId], room);
+	RoomOutSide();
 }
 void ProcessPacket(const char* data, size_t length, SOCKET client_sock)
 {
@@ -270,6 +270,7 @@ void ProcessPacket(const char* data, size_t length, SOCKET client_sock)
         RoomOutSideSendPacket(packet, client_sock);
         break;
     case ROOM_UPDATE_NOTIFY:
+
         break;
     default:
         cerr << "Unknown packet ID: " << PacketId << endl;
