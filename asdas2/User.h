@@ -18,7 +18,6 @@ public:
 
 	void Init(string* UserId);
 	void Clear();
-	void getPacket(char* data, size_t length, User& user);
 	void EnterRoom();
 	char m_userId[32];
 	User_State userState = USER_STATE_NONE;

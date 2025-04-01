@@ -3,41 +3,42 @@
 #pragma pack(push, 1)
 enum PacketStatus : UINT16
 {
-    SYS_USER_CONNECT,
-    SYS_USER_DISCONNECT,
-    SYS_END,
-
-    // DB
-    DB_END,
+    NONE,
 
     // Client
     LOGIN_REQUEST,
-    LOGIN_RESPONSE,
+    LOGIN_SUCCESS,
+    LOGIN_FAIL,
 
-    ROOM_LIST_REQUEST,     // 방 목록 요청
-    ROOM_LIST_RESPONSE,    // 방 목록 응답
-
-    ROOM_CREATE_REQUEST,   // 방 생성 요청
-    ROOM_CREATE_RESPONSE,  // 방 생성 응답
+    ROOM_CREATE_REQUEST,       // 방 생성 요청
     ROOM_CREATE_SUCCESS,
     ROOM_CREATE_FAIL,
 
-    ROOM_ENTER_REQUEST,    // 방 입장 요청
-    ROOM_ENTER_RESPONSE,   // 방 입장 응답
-    ROOM_IN_FAIL,
-    ROOM_IN_SUCCESS,
+    ROOM_ENTER_REQUEST,        // 방 입장 요청
+    ROOM_IN_SUCCESS,        // 방 입장 성공
+    ROOM_IN_FAIL,              // 방 입장 실패
 
-    ROOM_READY_RESPONSE,
-    ROOM_ALL_READY,
+    ROOM_LEAVE_REQUEST,        // 방 나가기 요청
+    ROOM_LEAVE_SUCCESS,        // 방 나가기 성공
+    ROOM_LEAVE_FAIL,           // 방 나가기 실패
 
-    ROOM_LEAVE_REQUEST,    // 방 나가기 요청
-    ROOM_LEAVE_RESPONSE,   // 방 나가기 응답
+    ROOM_UPDATE_NOTIFY,        // 방 정보 변경 (방설정 업데이트)
+    ROOM_UPDATE_SUCCESS,       // 방 정보 성공
+    ROOM_UPDATE_FAIL,           // 방 정보 실패
 
-    ROOM_UPDATE_NOTIFY,    // 방 정보 변경 (인원, 설정 등 업데이트)
+    ROOM_CLOSE_REQUEST,        // 방 닫기 요청
+    ROOM_CLOSE_SUCCESS,        // 방 닫기 성공
+    ROOM_CLOSE_FAIL,           // 방 닫기 실패
 
-    ROOM_CLOSE_REQUEST,    // 방 닫기 요청
-    ROOM_CLOSE_RESPONSE,   // 방 닫기 응답
-    ROOM_CLOSED_NOTIFY,    // 방 종료 알림
+    ROOM_LOBY_UPDATE,      //방 정보 리스트 받는거
+
+    USER_STATUS_LOBY,    //플레이어 로비에 있는 경우
+    USER_STATUS_LOGIN,  //플레이어 로그인하고 난 경우?
+
+    PLAYER_READY_TOGGLE_REQUEST,  // 플레이어 준비 상태 토글 요청
+    PLAYER_READY_TOGGLE_SUCCESS,  // 준비 상태 변경 성공
+    PLAYER_READY_TOGGLE_FAIL,     // 준비 상태 변경 실패
+
 };
 enum ItemID : UINT16 // 메인미션 및 아이템을 구분 짓는 ID ==> 플레이어 인벤토리에 들어갈 수 있는 아이템 종류들
 {
@@ -127,6 +128,19 @@ typedef struct RoomRequest {
     ADD_SERIALIZE_FUNCS(RoomRequest)
 } RoomChatRequest;
 
+typedef struct RoomNOtify {
+    UINT16 packetId;
+    char userName[32];
+	uint32_t roomId;
+    uint32_t D_day;
+    uint32_t DayTime;
+    uint32_t policeCount;
+    uint32_t MaxCount;
+    uint32_t vote;
+    uint32_t nigthTime;
+    uint32_t roomMode;
+	ADD_SERIALIZE_FUNCS(RoomNOtify)
+}RoomNOtify;
 
 typedef struct RoomInResponse {
     UINT16 PacketId;
@@ -136,12 +150,37 @@ typedef struct RoomInResponse {
     //roomresponse정보 뭐 넘겨줄지 생각
     ADD_SERIALIZE_FUNCS(RoomInResponse)
 } RoomInResponse;
-
-typedef struct RoomReadyResponse {
-    UINT16 PacketId;
-    uint32_t userId;
-    uint8_t userReadyStatus;
+//내가 받는것
+typedef struct PlayerReadySend {
+    UINT16 packetId;
+    char userName[32];
+    uint32_t roomID;
+    UINT16 readyStatus;
+	ADD_SERIALIZE_FUNCS(PlayerReadySend)
+}PlayerReady;
+//내가 던져주는 것
+typedef struct PlayerInfoGet {
+    UINT16 packetId;
+    char userName[32];
+    UINT16 readyStatus;
+	ADD_SERIALIZE_FUNCS(PlayerInfoGet)
+};
+//플레이어 상태
+typedef struct PlayerStatus {
+	UINT16 packetId;
+	uint32_t roomID;
+	ADD_SERIALIZE_FUNCS(PlayerStatus)
+};
+//방 만들어진 정보 던져주는거
+typedef struct RoomListGet
+{
+    UINT16 packetID;
+	char roomName[32];
+    char userName[32];
+    uint32_t userCount;
+    uint32_t maxuserCount;
+    UINT16 roomMode;
+	ADD_SERIALIZE_FUNCS(RoomListGet)
 };
 #pragma pack(pop)
-
 

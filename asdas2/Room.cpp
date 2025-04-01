@@ -21,9 +21,10 @@ int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, 
 	user = *UserInfo[room.userName];
     RoomInfo newRoom;
     user.host = true;
+	user.ready = true;
     user.userState = User::USER_STATE_ROOM;
-    strcpy(newRoom.hostName, room.userName);
-    strcpy(newRoom.roomName, room.roomName);
+    strcpy_s(newRoom.hostName, room.userName);
+    strcpy_s(newRoom.roomName, room.roomName);
     newRoom.roomId = GenerateRoomId();
     newRoom.userCount = 1;
     newRoom.RoomMode = room.RoomMode;
@@ -53,7 +54,7 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, 
 
     user->userState = User::USER_STATE_ROOM;
     Inroom.userCount++;
-    Inroom.userinfo.emplace_back(user);
+    Inroom.userinfo.emplace_back(*user);
     return true;
 
 }
@@ -73,11 +74,53 @@ void RoomOutSide(RoomInfo& room, RoomRequest userinfo, unordered_map<uint32_t, R
 	cout << "나갔어용" << endl;
 }
 
-void RoomSomeReady()
-{
+void RoomSomeReady(PlayerReadySend& Readyplayer, unordered_map<uint32_t, RoomInfo>& Rooms)  
+{  
+   auto roomId = Rooms.find(Readyplayer.roomID);  
+   if (roomId == Rooms.end())  
+   {  
+       cout << "Not Found Room" << endl;  
+       return;  
+   }  
+   RoomInfo& room = roomId->second;  
+   auto userIt = find_if(room.userinfo.begin(), room.userinfo.end(), [&](const User& user) {  
+       return strcmp(user.m_userId, Readyplayer.userName) == 0;  
+   });  
+   if (userIt != room.userinfo.end())  
+   {  
+       if (Readyplayer.readyStatus == 0)
+       {
+           userIt->ready = false;
+	   }
+	   else
+	   {
+		   userIt->ready = true;
+       };
+   }
+   
 
 }
-void RoomFixedUpdate()
+void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, RoomInfo>& Rooms)
+{
+	auto roomId = Rooms.find(FixRoom.roomId);
+	if (roomId == Rooms.end())
+	{
+		cout << "Not Found Room" << endl;
+		return;
+	}
+
+	RoomInfo& roomUpdate = roomId->second;
+    roomUpdate.RoomMode = FixRoom.roomMode;
+    roomUpdate.roomSet.DayTime = FixRoom.DayTime;
+    roomUpdate.roomSet.D_day = FixRoom.D_day;
+    roomUpdate.roomSet.nigthTime = FixRoom.nigthTime;
+    roomUpdate.roomSet.vote = FixRoom.vote;
+
+	cout << "방 정보 수정" << endl;
+}
+
+
+void RoomList()
 {
 
 }

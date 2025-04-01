@@ -2,12 +2,20 @@
 #include"deFine.h"
 #include"Packet.h"
 #include"user.h"
+struct RoomSet {
+	//참고로 시간은 그냥 1초를 기준으로 계산하여 전달하는게 더 나을듯.
+	uint32_t D_day;
+	uint32_t DayTime;
+	uint32_t vote;
+	uint32_t nigthTime;
+	
+};
 
 typedef struct RoomInfo {
 	UINT16 PacketId;
 	vector<User> userinfo;//유저정보
 	uint32_t roomId;
-
+	RoomSet roomSet;
 	char roomName[32];
 	char hostName[32];
 	UINT16 RoomMode;//방모드
@@ -23,33 +31,16 @@ typedef struct RoomInfo {
 		return true;
 	}
 }RoomInfo;
+//이건 모든 유저에게 뿌릴 데이터. 방에 들어왔을때.
 
 
 
 bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
 void RoomOutSide(RoomInfo& room, uint32_t userId, unordered_map<uint32_t, RoomInfo>& Rooms);
 int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
-void RoomFixedUpdate();
-#pragma once
+void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, RoomInfo>& Rooms);
+void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, RoomInfo>& Rooms );
 
-//이건 모든 유저에게 뿌릴 데이터. 방에 들어왔을때.
-struct RoomSet {
-	//참고로 시간은 그냥 1초를 기준으로 계산하여 전달하는게 더 나을듯.
-	uint32_t D_day;
-	uint32_t DayTime;
-	uint32_t vote;
-	uint32_t nigthTime;
-	uint32_t roomMode;
-	/*Day일수
-	하루시간
-	최대인원
-	투표식간
-	밤시간
-
-
-	방모드
-	모드에 따라 목표치 점수 수정*/
-};
 
 struct readyStatus {
 	UINT16 packetId;
