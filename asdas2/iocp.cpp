@@ -2,21 +2,16 @@
 #include "Login.h"
 #include "deFine.h"
 #include"Room.h"
+#include"stSendContext.h"
+#include"OverlappedExPool.h"
 
 #pragma comment(lib, "ws2_32.lib")
-
-using namespace std;
 
 #define SERVERPORT 43535
 #define BUFSIZE 256
 
-struct stOverlappedEx {
-    WSAOVERLAPPED overlp;
-    WSABUF wsabuf;
-    char buf[BUFSIZE];
-    SOCKET sock;
-    OverlState state;
-};
+using namespace std;
+
 unordered_map<string, shared_ptr<User>> LoginUser;
 unordered_map<SOCKET, shared_ptr<User>> Userkey;
 unordered_map<uint32_t, RoomInfo> Rooms;
@@ -85,42 +80,40 @@ void PostAccept(HANDLE hIOCP) {
         }
     }
 }
-void sendLogin(const LoginRequest& request, SOCKET client_sock)
-{
+void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
+    auto overlp = GetOverlappedPool().Allocate();
+
+    memset(&overlp->overlp, 0, sizeof(overlp->overlp));
+    overlp->sock = client_sock;
+    overlp->state = OverlState::SEND;
+
+    overlp->wsabuf.buf = new char[data.size()];
+    memcpy(overlp->wsabuf.buf, data.data(), data.size());
+    overlp->wsabuf.len = static_cast<ULONG>(data.size());
+
+    DWORD sendBytes;
+    int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
+    if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
+        std::cerr << "WSASend 실패: " << WSAGetLastError() << std::endl;
+        delete[] overlp->wsabuf.buf;
+        // shared_ptr이기 때문에 자동 반납됨
+    }
+    // overlp는 shared_ptr이므로 별도 수동 해제 불필요
+}
+
+void sendLogin(const LoginRequest& request, SOCKET client_sock) {
     LoginResponse response;
-    
     strcpy_s(response.username, sizeof(response.username), request.username);
-    if (Logrequest(const_cast<LoginRequest&>(request), LoginUser)){
+    if (Logrequest(const_cast<LoginRequest&>(request), LoginUser)) {
         strcpy_s(response.message, sizeof(response.message), "Login successful");
         response.PacketId = LOGIN_SUCCESS;
-
     }
     else {
         strcpy_s(response.message, sizeof(response.message), "Someone is Login");
-		response.PacketId = LOGIN_FAIL;
+        response.PacketId = LOGIN_FAIL;
     }
-
-
     std::vector<char> serializedData = response.serialize();
-
-    stOverlappedEx* sendOverEx = new stOverlappedEx;
-    memset(&sendOverEx->overlp, 0, sizeof(sendOverEx->overlp));
-
-
-    sendOverEx->wsabuf.buf = new char[serializedData.size()];
-    memcpy(sendOverEx->wsabuf.buf, serializedData.data(), serializedData.size());
-    sendOverEx->wsabuf.len = static_cast<ULONG>(serializedData.size());
-
-    sendOverEx->sock = client_sock;
-    sendOverEx->state = OverlState::SEND;
-
-    DWORD sendBytes = 0;
-    int retval = WSASend(client_sock, &sendOverEx->wsabuf, 1, &sendBytes, 0, &sendOverEx->overlp, NULL);
-    if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
-        cout << "[ERROR] WSASend 실패! 에러 코드: " << WSAGetLastError() << endl;
-        delete[] sendOverEx->wsabuf.buf;
-        delete sendOverEx;
-    }
+    SendPacket(serializedData, client_sock);
 }
 void RoomSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
 {
@@ -139,23 +132,7 @@ void RoomSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
     cout << "보낼때 룸 아이디" << response.roomId << endl;
 
     std::vector<char> serializedData = response.serialize();
-
-    stOverlappedEx* overlp = new stOverlappedEx;
-    memset(&overlp->overlp, 0, sizeof(overlp->overlp));
-    overlp->wsabuf.buf = new char[serializedData.size()];
-    memcpy(overlp->wsabuf.buf, serializedData.data(), serializedData.size());
-    overlp->wsabuf.len = static_cast<ULONG>(serializedData.size());
-    overlp->sock = client_sock;
-    overlp->state = OverlState::SEND;
-
-    DWORD sendBytes;
-    int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
-    cout << "방 보냈음: " << room.userName << " " << room.RoomMode;
-    if (retval == SOCKET_ERROR) {
-        if (WSAGetLastError() != WSA_IO_PENDING) {
-            std::cerr << "WSASend 에러: " << WSAGetLastError() << std::endl;
-        }
-    }
+    SendPacket(serializedData, client_sock);
 }
 void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
@@ -173,22 +150,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     }
 
     std::vector<char> serializedData = response.serialize();
-
-    stOverlappedEx* overlp = new stOverlappedEx;
-    memset(&overlp->overlp, 0, sizeof(overlp->overlp));
-    overlp->wsabuf.buf = new char[serializedData.size()];
-    memcpy(overlp->wsabuf.buf, serializedData.data(), serializedData.size());
-    overlp->wsabuf.len = static_cast<ULONG>(serializedData.size());
-    overlp->sock = client_sock;
-    overlp->state = OverlState::SEND;
-
-    DWORD sendBytes;
-    int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
-    if (retval == SOCKET_ERROR) {
-        if (WSAGetLastError() != WSA_IO_PENDING) {
-            std::cerr << "WSASend 에러: " << WSAGetLastError() << std::endl;
-        }
-    }
+    SendPacket(serializedData, client_sock);
 }
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
@@ -201,23 +163,7 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
         room.packetId = ROOM_UPDATE_FAIL;
     }
     std::vector<char> serializedData = room.serialize();
-
-    stOverlappedEx* overlp = new stOverlappedEx;
-    memset(&overlp->overlp, 0, sizeof(overlp->overlp));
-    overlp->wsabuf.buf = new char[serializedData.size()];
-    memcpy(overlp->wsabuf.buf, serializedData.data(), serializedData.size());
-    overlp->wsabuf.len = static_cast<ULONG>(serializedData.size());
-    overlp->sock = client_sock;
-    overlp->state = OverlState::SEND;
-
-    DWORD sendBytes;
-
-    int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
-    if (retval == SOCKET_ERROR) {
-        if (WSAGetLastError() != WSA_IO_PENDING) {
-            std::cerr << "WSASend 에러: " << WSAGetLastError() << std::endl;
-        }
-    }
+    SendPacket(serializedData, client_sock);
 
 }
 void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
@@ -233,16 +179,8 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 		PlayerInfoGet response;
         response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
 		strcpy(response.userName, room.userName);
-		response.readyStatus = room.readyStatus;
-		std::vector<char> serializedData = response.serialize();
-
-		stOverlappedEx* overlp = new stOverlappedEx;
-		memset(&overlp->overlp, 0, sizeof(overlp->overlp));
-		overlp->wsabuf.buf = new char[serializedData.size()];
-		memcpy(overlp->wsabuf.buf, serializedData.data(), serializedData.size());
-		overlp->wsabuf.len = static_cast<ULONG>(serializedData.size());
-		overlp->sock = user.sock;
-		overlp->state = OverlState::SEND;
+        std::vector<char> serializedData = response.serialize();
+        SendPacket(serializedData, client_sock);
 	}
 
 }
@@ -437,6 +375,10 @@ int main() {
                 delete overEx;
                 continue;
             }
+        else if (overEx->state == OverlState::SEND) {
+            delete[] overEx->wsabuf.buf;
+            // shared_ptr 자동 소멸로 풀에 반납됨
+        }
 
             // 패킷 처리
             ProcessPacket(overEx->buf, bytesTransferred, clientsoc);
