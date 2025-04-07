@@ -188,7 +188,20 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 }
 void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
 {
+    //listget구조체
+
 	RoomOutSide(room, Rooms);
+    
+    for (const auto& [roomid, room] : Rooms) {
+		RoomListGet response;
+		strcpy(response.roomName, room.roomName);
+		response.userCount = room.userCount;
+        response.packetID = ROOM_LOBY_UPDATE;
+		std::vector<char> serializedData = response.serialize();
+		SendPacket(serializedData, client_sock);    
+    }
+    cout << "일단 처리 됐다." << endl;
+    
 
 }
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)

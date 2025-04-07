@@ -60,6 +60,7 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, 
 }
 void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms)
 {
+    // 
 	auto roomId = Rooms.find(userinfo.roomId);
 	if (roomId == Rooms.end())
 	{
@@ -71,6 +72,11 @@ void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms
 	Outroom.userinfo.erase(remove_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
 		return user.m_userId == userinfo.userName;
 		}), Outroom.userinfo.end());
+	auto userptr = find_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
+		return user.m_userId == userinfo.userName;
+		});
+	userptr->userState = User::USER_STATE_LOBBY;
+
 	cout << "³ª°¬¾î¿ë" << endl;
 }
 

@@ -47,3 +47,4 @@ struct readyStatus {
 	uint32_t userId;
 	uint8_t ready;
 };
+	
