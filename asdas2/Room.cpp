@@ -58,7 +58,7 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, 
     return true;
 
 }
-void RoomOutSide(RoomInfo& room, RoomRequest userinfo, unordered_map<uint32_t, RoomInfo>& Rooms)
+void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms)
 {
 	auto roomId = Rooms.find(userinfo.roomId);
 	if (roomId == Rooms.end())
@@ -122,5 +122,5 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, RoomInfo>& Roo
 
 void RoomList()
 {
-
+    //방 정보 받아주는 것
 }

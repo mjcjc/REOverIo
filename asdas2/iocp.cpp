@@ -120,7 +120,7 @@ void RoomSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
     int getRoomid = RoomMake(const_cast<RoomCreateRequest&>(room), Rooms, LoginUser);
 
     RoomCreateResponse response;
-    //이건 친구가 수정 해주면 바꿔
+
     if (getRoomid == Rooms[getRoomid].roomId)
     {
         response.PacketId = ROOM_CREATE_SUCCESS;
@@ -154,7 +154,8 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 }
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
-    if (room.userName == Rooms[room.roomId].hostName)
+    cout << "들어는감." << endl;
+    if (strcmp(room.userName, Rooms[room.roomId].hostName) == 0)
     {
         RoomFixedUpdate(room, Rooms);
         room.packetId = ROOM_UPDATE_SUCCESS;
@@ -184,9 +185,10 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 	}
 
 }
-void RoomOutSideSendPacket(RoomRequest const& room, SOCKET client_sock)
+void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
 {
-	//RoomOutSide();
+	RoomOutSide(room, Rooms);
+
 }
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 {

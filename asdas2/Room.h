@@ -36,7 +36,7 @@ typedef struct RoomInfo {
 
 
 bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
-void RoomOutSide(RoomInfo& room, uint32_t userId, unordered_map<uint32_t, RoomInfo>& Rooms);
+void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms);
 int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
 void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, RoomInfo>& Rooms);
 void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, RoomInfo>& Rooms );

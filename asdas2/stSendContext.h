@@ -8,7 +8,7 @@ constexpr size_t RECV_BUFFER_SIZE = 1024;
 constexpr size_t BUFSIZE = 1024;
 constexpr size_t ACCEPT_BUFFER_SIZE = 2 * (sizeof(SOCKADDR_IN) + 16);
 
-enum class OverlState {
+enum class OverlState :UINT16 {
     ACCEPT,
     RECV,
     SEND

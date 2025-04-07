@@ -136,8 +136,11 @@
   <ItemGroup>
     <ClInclude Include="deFine.h" />
     <ClInclude Include="Login.h" />
+    <ClInclude Include="ObjectPool.h" />
+    <ClInclude Include="OverlappedExPool.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="Room.h" />
+    <ClInclude Include="stSendContext.h" />
     <ClInclude Include="User.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

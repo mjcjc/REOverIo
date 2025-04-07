@@ -10,10 +10,3 @@
 #include <MSWSock.h>
 #include <memory>
 using namespace std;
-
-enum OverlState : UINT16
-{
-	 ACCEPT, 
-	 RECV, 
-	 SEND,
-};
