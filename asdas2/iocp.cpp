@@ -179,6 +179,7 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
         }
 		PlayerInfoGet response;
         response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        response.readyStatus = 1;
 		strcpy(response.userName, room.userName);
         std::vector<char> serializedData = response.serialize();
         SendPacket(serializedData, client_sock);
@@ -193,7 +194,7 @@ void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 {
     if (length < sizeof(UINT16)) {
-        cerr << "Invalid packet size" << endl;
+        cerr << "Inval  id packet size" << endl;
         return;
     }
 
