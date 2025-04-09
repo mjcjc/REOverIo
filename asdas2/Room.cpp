@@ -110,10 +110,13 @@ void RoomSomeReady(PlayerReadySend& Readyplayer, unordered_map<uint32_t, RoomInf
        if (Readyplayer.readyStatus == 0)
        {
            userIt->ready = false;
-	   }
-	   else
+           Readyplayer.readyStatus = 0;
+
+       }else
 	   {
 		   userIt->ready = true;
+           Readyplayer.readyStatus = 1;
+
        };
    }
    

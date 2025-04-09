@@ -10,3 +10,6 @@
 #include <MSWSock.h>
 #include <memory>
 using namespace std;
+
+
+void RoomListSend();

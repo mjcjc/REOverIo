@@ -98,6 +98,7 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
         delete[] overlp->wsabuf.buf;
         // shared_ptr이기 때문에 자동 반납됨
     }
+
     // overlp는 shared_ptr이므로 별도 수동 해제 불필요
 }
 
@@ -126,13 +127,14 @@ void RoomMakeSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
         response.PacketId = ROOM_CREATE_SUCCESS;
     }
     else {
-       response.PacketId = ROOM_CREATE_FAIL;
+        response.PacketId = ROOM_CREATE_FAIL;
     }
     response.roomId = getRoomid;
     cout << "보낼때 룸 아이디" << response.roomId << endl;
 
     std::vector<char> serializedData = response.serialize();
     SendPacket(serializedData, client_sock);
+    RoomListSend();
 }
 void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
@@ -143,7 +145,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 
         response.roomId = room.roomId;
         strcpy_s(response.roomName, Rooms[room.roomId].roomName);
-		strcpy_s(response.userName, room.userName);
+        strcpy_s(response.userName, room.userName);
     }
     else {
         response.PacketId = ROOM_IN_FAIL;
@@ -153,6 +155,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     std::vector<char> serializedData = response.serialize();
 
     SendPacket(serializedData, client_sock);
+    RoomListSend();
 }
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
@@ -171,38 +174,42 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
     SendPacket(serializedData, client_sock);
 
 }
-void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
+void RoomReadySend(PlayerReadySend & room, SOCKET client_sock)
 {
     RoomSomeReady(const_cast<PlayerReadySend&>(room), Rooms);
 
-	for (auto& user : Rooms[room.roomID].userinfo)
-	{
-        if (user.m_userId == room.userName) 
-		{
+    for (auto& user : Rooms[room.roomID].userinfo)
+    {
+        if (user.m_userId == room.userName)
+        {
             continue;
         }
-		PlayerInfoGet response;
-        response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
-        response.readyStatus = 1;
-		strcpy(response.userName, room.userName);
-        std::vector<char> serializedData = response.serialize();
-        SendPacket(serializedData, client_sock);
-	}
-
-}
-void RoomListSend(SOCKET client_sock)
-{
-    for (const auto& [roomid, room] : Rooms) {
-        RoomListGet response;
-        strcpy(response.roomName, room.roomName);
-        strcpy(response.hostName, room.hostName);
-        response.userCount = room.userCount;
-        response.maxuserCount = room.maxUserCount;
-        response.roomMode = room.RoomMode;
-        response.packetID = ROOM_LOBY_UPDATE;
-        std::vector<char> serializedData = response.serialize();
+        room.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        std::vector<char> serializedData = room.serialize();
         SendPacket(serializedData, client_sock);
     }
+
+}
+
+void RoomListSend()
+{
+    for (auto& [sock, user] : Userkey) {
+        if (user->userState == User::USER_STATE_LOBBY) {
+            for (const auto& [roomId, room] : Rooms) {
+                RoomListGet response;
+                response.packetID = ROOM_LOBY_UPDATE;
+                strcpy_s(response.roomName, room.roomName);
+                strcpy_s(response.hostName, room.hostName);
+                response.userCount = room.userCount;
+                response.maxuserCount = room.maxUserCount;
+                response.roomMode = room.RoomMode;
+
+                std::vector<char> serializedData = response.serialize();
+                SendPacket(serializedData, sock);
+            }
+        }
+    }
+    
 }
 void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 {
@@ -213,7 +220,7 @@ void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
     std::vector<char> serializedData = room.serialize();
     SendPacket(serializedData, client_sock);
 
-    RoomListSend(client_sock);
+    RoomListSend();
 }
 
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
@@ -328,7 +335,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 		PlayerStatus packet = PlayerStatus::deserialize(
 			std::vector<char>(data, data + sizeof(PlayerStatus))
 		);
-		RoomListSend(client_sock);
+		RoomListSend();
     }
     break;
     default:
