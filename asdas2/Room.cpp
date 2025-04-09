@@ -26,7 +26,7 @@ int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, 
     strcpy_s(newRoom.hostName, room.userName);
     strcpy_s(newRoom.roomName, room.roomName);
     newRoom.roomId = GenerateRoomId();
-    newRoom.userCount = 1;
+    newRoom.userCount = 0;
     newRoom.RoomMode = room.RoomMode;
     newRoom.maxUserCount = room.MaxCount;
     newRoom.userinfo.emplace_back(user);
@@ -68,23 +68,29 @@ void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms
 		return;
 	}
 	RoomInfo& Outroom = roomId->second;
-	Outroom.userCount--;
-	Outroom.userinfo.erase(remove_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
-		return user.m_userId == userinfo.userName;
-		}), Outroom.userinfo.end());
-	auto userptr = find_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
-		return user.m_userId == userinfo.userName;
-		});
-	userptr->userState = User::USER_STATE_LOBBY;
-	if (Outroom.userCount == 0)
-	{
-		Rooms.erase(roomId);
-		cout << "방 삭제" << endl;
-	}
-	else
-	{
-		cout << "방 나갔어용" << endl;
-	}
+    auto userptr = find_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
+        return user.m_userId == userinfo.userName;
+        });
+
+    if (userptr != Outroom.userinfo.end()) {
+        userptr->userState = User::USER_STATE_LOBBY;
+    }
+
+    Outroom.userCount--;
+    Outroom.userinfo.erase(remove_if(Outroom.userinfo.begin(), Outroom.userinfo.end(), [&](User& user) {
+        return user.m_userId == userinfo.userName;
+        }), Outroom.userinfo.end());
+
+    if (Outroom.userCount < 1)
+    {
+        Rooms.erase(roomId);
+        cout << "방 삭제" << endl;
+    }
+    else
+    {
+        cout << "방 나갔어용" << endl;
+    }
+
 }
 
 void RoomSomeReady(PlayerReadySend& Readyplayer, unordered_map<uint32_t, RoomInfo>& Rooms)  

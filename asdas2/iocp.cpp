@@ -115,7 +115,7 @@ void sendLogin(const LoginRequest& request, SOCKET client_sock) {
     std::vector<char> serializedData = response.serialize();
     SendPacket(serializedData, client_sock);
 }
-void RoomSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
+void RoomMakeSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
 {
     int getRoomid = RoomMake(const_cast<RoomCreateRequest&>(room), Rooms, LoginUser);
 
@@ -148,8 +148,10 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     else {
         response.PacketId = ROOM_IN_FAIL;
     }
-
+    //방에대한 정보를 다시 보내줘야 하는 것 생각 해야함.
+    // 이거는 자기자신만 send치게 되어 있음.
     std::vector<char> serializedData = response.serialize();
+
     SendPacket(serializedData, client_sock);
 }
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
@@ -164,6 +166,8 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
         room.packetId = ROOM_UPDATE_FAIL;
     }
     std::vector<char> serializedData = room.serialize();
+
+    //이쪽을 broadcast로 변경.
     SendPacket(serializedData, client_sock);
 
 }
@@ -186,25 +190,6 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 	}
 
 }
-void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
-{
-    //listget구조체
-
-	RoomOutSide(room, Rooms);
-    
-    for (const auto& [roomid, room] : Rooms) {
-		RoomListGet response;
-		strcpy(response.roomName, room.roomName);
-        strcpy(response.hostName, room.hostName);
-        response.userCount = room.userCount;
-        response.maxuserCount = room.maxUserCount;
-        response.roomMode = room.RoomMode;
-        response.packetID = ROOM_LOBY_UPDATE;
-        std::vector<char> serializedData = response.serialize();
-		SendPacket(serializedData, client_sock);    
-    }
-}
-
 void RoomListSend(SOCKET client_sock)
 {
     for (const auto& [roomid, room] : Rooms) {
@@ -219,6 +204,18 @@ void RoomListSend(SOCKET client_sock)
         SendPacket(serializedData, client_sock);
     }
 }
+void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
+{
+    //listget구조체
+
+    RoomOutSide(room, Rooms);
+    room.PacketId = ROOM_LEAVE_SUCCESS;
+    std::vector<char> serializedData = room.serialize();
+    SendPacket(serializedData, client_sock);
+
+    RoomListSend(client_sock);
+}
+
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 {
     if (length < sizeof(UINT16)) {
@@ -262,7 +259,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         cout << "받은 패킷 데이터:" << endl;
         cout << "PacketId: " << packet.PacketId << endl;
         cout << "Username: " << packet.userName << endl;
-        RoomSendPacket(packet, client_sock);
+        RoomMakeSendPacket(packet, client_sock);
     }
     break;
     case ROOM_ENTER_REQUEST:
