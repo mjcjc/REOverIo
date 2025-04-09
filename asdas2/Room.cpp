@@ -140,7 +140,8 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, RoomInfo>& Roo
 }
 
 
-void RoomList()
+void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
 {
-    //방 정보 받아주는 것
+	userkey[client_sock]->userState = User::USER_STATE_LOBBY;
+
 }

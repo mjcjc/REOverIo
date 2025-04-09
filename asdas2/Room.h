@@ -40,7 +40,7 @@ void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms
 int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
 void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, RoomInfo>& Rooms);
 void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, RoomInfo>& Rooms );
-
+void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
 
 struct readyStatus {
 	UINT16 packetId;

@@ -184,6 +184,7 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
         {
             continue;
         }
+        //두번 보내짐 구조 수정.
         PlayerInfoGet response;
         response.readyStatus = room.readyStatus;
         response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
@@ -206,13 +207,11 @@ void RoomListSend()
                 response.userCount = room.userCount;
                 response.maxuserCount = room.maxUserCount;
                 response.roomMode = room.RoomMode;
-
                 std::vector<char> serializedData = response.serialize();
                 SendPacket(serializedData, sock);
             }
         }
     }
-    
 }
 void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 {
@@ -338,7 +337,8 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 		PlayerStatus packet = PlayerStatus::deserialize(
 			std::vector<char>(data, data + sizeof(PlayerStatus))
 		);
-		RoomListSend();
+        LobbyUser(client_sock, Userkey);
+        RoomListSend();
     }
     break;
     default:
