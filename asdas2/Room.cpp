@@ -76,8 +76,15 @@ void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms
 		return user.m_userId == userinfo.userName;
 		});
 	userptr->userState = User::USER_STATE_LOBBY;
-
-	cout << "나갔어용" << endl;
+	if (Outroom.userCount == 0)
+	{
+		Rooms.erase(roomId);
+		cout << "방 삭제" << endl;
+	}
+	else
+	{
+		cout << "방 나갔어용" << endl;
+	}
 }
 
 void RoomSomeReady(PlayerReadySend& Readyplayer, unordered_map<uint32_t, RoomInfo>& Rooms)  

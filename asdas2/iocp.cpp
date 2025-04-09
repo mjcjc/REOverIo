@@ -200,9 +200,18 @@ void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
 		std::vector<char> serializedData = response.serialize();
 		SendPacket(serializedData, client_sock);    
     }
-    cout << "일단 처리 됐다." << endl;
-    
+}
 
+void RoomListSend(SOCKET client_sock)
+{
+    for (const auto& [roomid, room] : Rooms) {
+        RoomListGet response;
+        strcpy(response.roomName, room.roomName);
+        response.userCount = room.userCount;
+        response.packetID = ROOM_LOBY_UPDATE;
+        std::vector<char> serializedData = response.serialize();
+        SendPacket(serializedData, client_sock);
+    }
 }
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 {
@@ -316,7 +325,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 		PlayerStatus packet = PlayerStatus::deserialize(
 			std::vector<char>(data, data + sizeof(PlayerStatus))
 		);
-        //RoomListGet으로 변경
+		RoomListSend(client_sock);
     }
     break;
     default:
