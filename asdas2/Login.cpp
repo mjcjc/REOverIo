@@ -13,7 +13,7 @@ bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& 
         else {
             cout << "Login Success" << endl;
             it->second->Login = true;
-            it->second->userState = User::USER_STATE_LOBBY;
+            it->second->userState = User::USER_STATE_LOGIN;
             return true;
         }
 
@@ -22,7 +22,7 @@ bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& 
     else {
         shared_ptr<User> newUser = make_shared<User>();;
         newUser->Init(&username);
-        newUser->userState = User::USER_STATE_LOBBY;
+        newUser->userState = User::USER_STATE_LOGIN;
         newUser->Login = true;
         user[username] = newUser;
     }

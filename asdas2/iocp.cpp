@@ -174,7 +174,7 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
     SendPacket(serializedData, client_sock);
 
 }
-void RoomReadySend(PlayerReadySend & room, SOCKET client_sock)
+void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 {
     RoomSomeReady(const_cast<PlayerReadySend&>(room), Rooms);
 
@@ -184,8 +184,11 @@ void RoomReadySend(PlayerReadySend & room, SOCKET client_sock)
         {
             continue;
         }
-        room.packetId = PLAYER_READY_TOGGLE_SUCCESS;
-        std::vector<char> serializedData = room.serialize();
+        PlayerInfoGet response;
+        response.readyStatus = room.readyStatus;
+        response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        strcpy(response.userName, room.userName);
+        std::vector<char> serializedData = response.serialize();
         SendPacket(serializedData, client_sock);
     }
 
