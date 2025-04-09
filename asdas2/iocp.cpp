@@ -96,10 +96,7 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
     if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSASend 실패: " << WSAGetLastError() << std::endl;
         delete[] overlp->wsabuf.buf;
-        // shared_ptr이기 때문에 자동 반납됨
     }
-
-    // overlp는 shared_ptr이므로 별도 수동 해제 불필요
 }
 
 void sendLogin(const LoginRequest& request, SOCKET client_sock) {
@@ -177,20 +174,20 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 {
     RoomSomeReady(const_cast<PlayerReadySend&>(room), Rooms);
-
+    PlayerInfoGet response;
+    response.readyStatus = room.readyStatus;
+    response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+    strcpy(response.userName, room.userName);
+    std::vector<char> serializedData = response.serialize();
+    SendPacket(serializedData, client_sock);
     for (auto& user : Rooms[room.roomID].userinfo)
     {
         if (user.m_userId == room.userName)
         {
             continue;
         }
-        //두번 보내짐 구조 수정.
-        PlayerInfoGet response;
-        response.readyStatus = room.readyStatus;
-        response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
-        strcpy(response.userName, room.userName);
-        std::vector<char> serializedData = response.serialize();
-        SendPacket(serializedData, client_sock);
+
+        SendPacket(serializedData, user.sock);
     }
 
 }
