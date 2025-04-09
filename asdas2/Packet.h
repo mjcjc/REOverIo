@@ -176,7 +176,7 @@ typedef struct RoomListGet
 {
     UINT16 packetID;
 	char roomName[32];
-    char userName[32];
+    char hostName[32];
     uint32_t userCount;
     uint32_t maxuserCount;
     UINT16 roomMode;

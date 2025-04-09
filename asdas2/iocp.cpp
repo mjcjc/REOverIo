@@ -195,9 +195,12 @@ void RoomOutSideSendPacket(RoomRequest & room, SOCKET client_sock)
     for (const auto& [roomid, room] : Rooms) {
 		RoomListGet response;
 		strcpy(response.roomName, room.roomName);
-		response.userCount = room.userCount;
+        strcpy(response.hostName, room.hostName);
+        response.userCount = room.userCount;
+        response.maxuserCount = room.maxUserCount;
+        response.roomMode = room.RoomMode;
         response.packetID = ROOM_LOBY_UPDATE;
-		std::vector<char> serializedData = response.serialize();
+        std::vector<char> serializedData = response.serialize();
 		SendPacket(serializedData, client_sock);    
     }
 }
@@ -207,7 +210,10 @@ void RoomListSend(SOCKET client_sock)
     for (const auto& [roomid, room] : Rooms) {
         RoomListGet response;
         strcpy(response.roomName, room.roomName);
+        strcpy(response.hostName, room.hostName);
         response.userCount = room.userCount;
+        response.maxuserCount = room.maxUserCount;
+        response.roomMode = room.RoomMode;
         response.packetID = ROOM_LOBY_UPDATE;
         std::vector<char> serializedData = response.serialize();
         SendPacket(serializedData, client_sock);
