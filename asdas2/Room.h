@@ -13,7 +13,7 @@ struct RoomSet {
 
 typedef struct RoomInfo {
 	UINT16 PacketId;
-	vector<User> userinfo;//유저정보
+	vector<shared_ptr<User>> userinfo;//유저정보
 	uint32_t roomId;
 	RoomSet roomSet;
 	char roomName[32];
@@ -24,7 +24,7 @@ typedef struct RoomInfo {
 	
 	bool isAllReady() const {
 		for (const auto& user : userinfo) {
-			if (!user.ready) {
+			if (!user->ready) {
 				return false;
 			}
 		}

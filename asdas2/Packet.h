@@ -167,9 +167,9 @@ typedef struct PlayerInfoGet {
 };
 //플레이어 상태
 typedef struct PlayerStatus {
-	UINT16 packetId;
-	uint32_t roomID;
-	ADD_SERIALIZE_FUNCS(PlayerStatus)
+    UINT16 packetId;
+    uint32_t roomID;
+    ADD_SERIALIZE_FUNCS(PlayerStatus)
 };
 //방 만들어진 정보 던져주는거
 typedef struct RoomListGet

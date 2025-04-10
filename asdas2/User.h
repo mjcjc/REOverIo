@@ -1,5 +1,6 @@
 #pragma once
-#include"deFine.h"
+#pragma once  
+#include "deFine.h"  
 #include"Packet.h"
 
 
@@ -26,6 +27,7 @@ public:
 	string m_userKey;
 	SOCKET sock;
 	bool Login = false;
+	User() : ready(false), host(false), userState(USER_STATE_LOBBY) {}
 private:
 
 

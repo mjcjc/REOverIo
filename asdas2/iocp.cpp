@@ -137,9 +137,10 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
     RoomInResponse response;
 
-    if (RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser)) {
-        response.PacketId = ROOM_IN_SUCCESS;
+    bool joinSuccess = RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser);
 
+    if (joinSuccess) {
+        response.PacketId = ROOM_IN_SUCCESS;
         response.roomId = room.roomId;
         strcpy_s(response.roomName, Rooms[room.roomId].roomName);
         strcpy_s(response.userName, room.userName);
@@ -147,13 +148,16 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     else {
         response.PacketId = ROOM_IN_FAIL;
     }
-    //방에대한 정보를 다시 보내줘야 하는 것 생각 해야함.
-    // 이거는 자기자신만 send치게 되어 있음.
-    std::vector<char> serializedData = response.serialize();
 
-    SendPacket(serializedData, client_sock);
+    std::vector<char> serializedData = response.serialize();
+	for (auto& user : Rooms[room.roomId].userinfo)
+	{
+		SendPacket(serializedData, user->sock);
+	}
+    //SendPacket(serializedData, client_sock);
     RoomListSend();
 }
+
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
     cout << "들어는감." << endl;
@@ -182,33 +186,33 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
     SendPacket(serializedData, client_sock);
     for (auto& user : Rooms[room.roomID].userinfo)
     {
-        if (user.m_userId == room.userName)
+        if (user->m_userId == room.userName)
         {
             continue;
         }
 
-        SendPacket(serializedData, user.sock);
+        SendPacket(serializedData, user->sock);
     }
 
 }
 
-void RoomListSend()
-{
-    for (auto& [sock, user] : Userkey) {
-        if (user->userState == User::USER_STATE_LOBBY) {
-            for (const auto& [roomId, room] : Rooms) {
-                RoomListGet response;
-                response.packetID = ROOM_LOBY_UPDATE;
-                strcpy_s(response.roomName, room.roomName);
-                strcpy_s(response.hostName, room.hostName);
-                response.userCount = room.userCount;
-                response.maxuserCount = room.maxUserCount;
-                response.roomMode = room.RoomMode;
-                std::vector<char> serializedData = response.serialize();
-                SendPacket(serializedData, sock);
-            }
-        }
-    }
+void RoomListSend()  
+{  
+   for (auto& [sock, user] : Userkey) {
+       if (user->userState == User::USER_STATE_LOBBY) {  
+           for (const auto& [roomId, room] : Rooms) {  
+               RoomListGet response;  
+               response.packetID = ROOM_LOBY_UPDATE;  
+               strcpy_s(response.roomName, room.roomName);  
+               strcpy_s(response.hostName, room.hostName);  
+               response.userCount = room.userCount;  
+               response.maxuserCount = room.maxUserCount;  
+               response.roomMode = room.RoomMode;  
+               std::vector<char> serializedData = response.serialize();  
+               SendPacket(serializedData, sock);  
+           }  
+       }  
+   }  
 }
 void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 {
