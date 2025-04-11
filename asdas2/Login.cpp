@@ -1,6 +1,6 @@
 #include "login.h"
 #include "user.h"
-bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& user)
+bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& user, SOCKET client_sock)
 {
     string username(request.username);
     // 같다면 로그인 성공
@@ -24,6 +24,7 @@ bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& 
         newUser->Init(&username);
         newUser->userState = User::USER_STATE_LOGIN;
         newUser->Login = true;
+        newUser->sock = client_sock;
         user[username] = newUser;
     }
     return true;

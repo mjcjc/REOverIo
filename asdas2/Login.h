@@ -4,4 +4,4 @@
 
 
 
-bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& user);
+bool Logrequest(LoginRequest& request, unordered_map<string, shared_ptr<User>>& user, SOCKET client_sock);
