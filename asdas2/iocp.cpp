@@ -137,56 +137,50 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
     RoomInResponse response;
     bool joinSuccess = RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser);
-    if (!(room.userName == Rooms[room.roomId]->hostName))
+    if (!joinSuccess) return;
+
+    auto roomInfo = Rooms[room.roomId];
+    auto joiningUser = LoginUser[room.userName];
+
+    // 1. B에게 기존 유저들의 정보를 RoomInResponse로 전송
+    for (const auto& user : roomInfo->userinfo)
     {
-        if (joinSuccess) {
-            if (Rooms[room.roomId]->userCount <= 1)
-            {
-                response.PacketId = ROOM_IN_SUCCESS;
-                response.roomId = room.roomId;
-                strcpy_s(response.roomName, Rooms[room.roomId]->roomName);
-                strcpy_s(response.userName, room.userName);
-                std::vector<char> serializedData = response.serialize();
-                SendPacket(serializedData, client_sock);
+        if (strcmp(user->m_userId, room.userName) == 0) continue; // 자기 자신 제외
 
-            }
-            else {
-                for (auto& user : Rooms[room.roomId]->userinfo)
-                {
+        response.PacketId = ROOM_IN_SUCCESS;
+        response.roomId = room.roomId;
+        strcpy_s(response.roomName, roomInfo->roomName);
+        strcpy_s(response.userName, user->m_userId);
 
-                    response.PacketId = ROOM_IN_SUCCESS;
-                    response.roomId = room.roomId;
-                    strcpy_s(response.roomName, Rooms[room.roomId]->roomName);
-                    strcpy_s(response.userName, user->m_userId);
-                    /*newPlayer.roomID = room.roomId;
-                    newPlayer.readyStatus = user->ready;
-                    strcpy(newPlayer.userName, user->m_userId);
-                    */cout << "기존유저" << response.userName << endl;
-                    std::vector<char> serializedData = response.serialize();
-                    SendPacket(serializedData, client_sock);
-                }
-            }
-            
-        }
+        std::vector<char> serializedData = response.serialize();
+        SendPacket(serializedData, client_sock);  // B에게 A들 정보 전송
+        std::cout << "기존 유저 전송: " << response.userName << std::endl;
     }
-    if (Rooms[room.roomId]->userCount > 1) {
-        PlayerReadySend newPlayer;
-        newPlayer.packetId = PLAYER_READY_TOGGLE_SUCCESS;
-        newPlayer.roomID = room.roomId;
-        newPlayer.readyStatus = 0; // 기본값
-        strcpy(newPlayer.userName, room.userName); // 새로 들어온 B
 
-        std::vector<char> serializedData = newPlayer.serialize();
+    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
+    response.PacketId = ROOM_IN_SUCCESS;
+    response.roomId = room.roomId;
+    strcpy_s(response.roomName, roomInfo->roomName);
+    strcpy_s(response.userName, room.userName);
 
-        for (auto& user : Rooms[room.roomId]->userinfo)
-        {
-            // 새로 들어온 유저(B)는 제외하고 전송
-            if (strcmp(user->m_userId, room.userName) != 0) {
-                cout << "방 유저 새로 들어옴 (전송 대상): " << user->m_userId << endl;
-                SendPacket(serializedData, user->sock); // 기존 유저(A)에게 B 정보 전송
-            }
-        }
+    SendPacket(response.serialize(), client_sock); // B에게 자기 정보
+    std::cout << "본인 정보 전송: " << response.userName << std::endl;
+
+    // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
+    PlayerInfoGet newUserNotify;
+    newUserNotify.packetId = PLAYER_READY_TOGGLE_SUCCESS; // 혹은 PLAYER_JOIN_NOTIFY
+    newUserNotify.readyStatus = joiningUser->ready ? 1 : 0;
+    strcpy_s(newUserNotify.userName, room.userName);
+
+    std::vector<char> notifyPacket = newUserNotify.serialize();
+    for (const auto& user : roomInfo->userinfo)
+    {
+        if (strcmp(user->m_userId, room.userName) == 0) continue; // B 제외
+        SendPacket(notifyPacket, user->sock);
+        std::cout << "신규 유저 정보 전송 대상: " << user->m_userId << std::endl;
     }
+
+    // 4. 로비 유저에게 방 목록 갱신
     RoomListSend();
 }
 
