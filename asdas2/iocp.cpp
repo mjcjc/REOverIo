@@ -14,7 +14,7 @@ using namespace std;
 
 unordered_map<string, shared_ptr<User>> LoginUser;
 unordered_map<SOCKET, shared_ptr<User>> Userkey;
-unordered_map<uint32_t, RoomInfo> Rooms;
+unordered_map<uint32_t, shared_ptr<RoomInfo>> Rooms;
 
 SOCKET ListenSock;
 LPFN_ACCEPTEX AcceptExFunc;
@@ -115,11 +115,11 @@ void sendLogin(const LoginRequest& request, SOCKET client_sock) {
 }
 void RoomMakeSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
 {
-    int getRoomid = RoomMake(const_cast<RoomCreateRequest&>(room), Rooms, LoginUser);
 
+    int getRoomid = RoomMake(const_cast<RoomCreateRequest&>(room), Rooms, LoginUser);
     RoomCreateResponse response;
 
-    if (getRoomid == Rooms[getRoomid].roomId)
+    if (getRoomid == Rooms[getRoomid]->roomId)
     {
         response.PacketId = ROOM_CREATE_SUCCESS;
     }
@@ -136,28 +136,65 @@ void RoomMakeSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
 void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
     RoomInResponse response;
+    bool joinSuccess = RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser);
+    if (!(room.userName == Rooms[room.roomId]->hostName))
+    {
+        if (joinSuccess) {
+            if (Rooms[room.roomId]->userCount <= 1)
+            {
+                response.PacketId = ROOM_IN_SUCCESS;
+                response.roomId = room.roomId;
+                strcpy_s(response.roomName, Rooms[room.roomId]->roomName);
+                strcpy_s(response.userName, room.userName);
+                std::vector<char> serializedData = response.serialize();
+                SendPacket(serializedData, client_sock);
 
-    if (RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser)) {
-        response.PacketId = ROOM_IN_SUCCESS;
+            }
+            else {
+                for (auto& user : Rooms[room.roomId]->userinfo)
+                {
 
-        response.roomId = room.roomId;
-        strcpy_s(response.roomName, Rooms[room.roomId].roomName);
-        strcpy_s(response.userName, room.userName);
+                    response.PacketId = ROOM_IN_SUCCESS;
+                    response.roomId = room.roomId;
+                    strcpy_s(response.roomName, Rooms[room.roomId]->roomName);
+                    strcpy_s(response.userName, user->m_userId);
+                    /*newPlayer.roomID = room.roomId;
+                    newPlayer.readyStatus = user->ready;
+                    strcpy(newPlayer.userName, user->m_userId);
+                    */cout << "기존유저" << response.userName << endl;
+                    std::vector<char> serializedData = response.serialize();
+                    SendPacket(serializedData, client_sock);
+                }
+            }
+            
+        }
     }
-    else {
-        response.PacketId = ROOM_IN_FAIL;
-    }
-    //방에대한 정보를 다시 보내줘야 하는 것 생각 해야함.
-    // 이거는 자기자신만 send치게 되어 있음.
-    std::vector<char> serializedData = response.serialize();
+    if (Rooms[room.roomId]->userCount > 1) {
+        PlayerReadySend newPlayer;
+        newPlayer.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        newPlayer.roomID = room.roomId;
+        newPlayer.readyStatus = 0; // 기본값
+        strcpy(newPlayer.userName, room.userName); // 새로 들어온 B
 
-    SendPacket(serializedData, client_sock);
-    RoomListSend();
+        std::vector<char> serializedData = newPlayer.serialize();
+
+        for (auto& user : Rooms[room.roomId]->userinfo)
+        {
+            // 새로 들어온 유저(B)는 제외하고 전송
+            if (strcmp(user->m_userId, room.userName) != 0) {
+                cout << "방 유저 새로 들어옴 (전송 대상): " << user->m_userId << endl;
+                SendPacket(serializedData, user->sock); // 기존 유저(A)에게 B 정보 전송
+            }
+        }
+    }
+    
 }
+
+
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
     cout << "들어는감." << endl;
-    if (strcmp(room.userName, Rooms[room.roomId].hostName) == 0)
+    if (strcmp(room.userName, Rooms[room.roomId]->hostName) == 0)
     {
         RoomFixedUpdate(room, Rooms);
         room.packetId = ROOM_UPDATE_SUCCESS;
@@ -180,14 +217,14 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
     strcpy(response.userName, room.userName);
     std::vector<char> serializedData = response.serialize();
     SendPacket(serializedData, client_sock);
-    for (auto& user : Rooms[room.roomID].userinfo)
+    for (auto& user : Rooms[room.roomID]->userinfo)
     {
-        if (user.m_userId == room.userName)
+        if ((user)->m_userId == room.userName)
         {
             continue;
         }
 
-        SendPacket(serializedData, user.sock);
+        SendPacket(serializedData, (user)->sock);
     }
 
 }
@@ -199,11 +236,11 @@ void RoomListSend()
             for (const auto& [roomId, room] : Rooms) {
                 RoomListGet response;
                 response.packetID = ROOM_LOBY_UPDATE;
-                strcpy_s(response.roomName, room.roomName);
-                strcpy_s(response.hostName, room.hostName);
-                response.userCount = room.userCount;
-                response.maxuserCount = room.maxUserCount;
-                response.roomMode = room.RoomMode;
+                strcpy_s(response.roomName, room->roomName);
+                strcpy_s(response.hostName, room->hostName);
+                response.userCount = room->userCount;
+                response.maxuserCount = room->maxUserCount;
+                response.roomMode = room->RoomMode;
                 std::vector<char> serializedData = response.serialize();
                 SendPacket(serializedData, sock);
             }
@@ -277,6 +314,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomRequest packet = RoomRequest::deserialize(
             std::vector<char>(data, data + sizeof(RoomRequest))
         );
+        cout << "여기!" << endl;
         cout << "받은 패킷 데이터:" << endl;
         cout << "PacketId: " << packet.PacketId << endl;
         cout << "Username: " << packet.userName << endl;

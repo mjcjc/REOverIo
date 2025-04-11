@@ -13,7 +13,7 @@ struct RoomSet {
 
 typedef struct RoomInfo {
 	UINT16 PacketId;
-	vector<User> userinfo;//유저정보
+	vector<shared_ptr<User>> userinfo;//유저정보
 	uint32_t roomId;
 	RoomSet roomSet;
 	char roomName[32];
@@ -24,7 +24,7 @@ typedef struct RoomInfo {
 	
 	bool isAllReady() const {
 		for (const auto& user : userinfo) {
-			if (!user.ready) {
+			if (!user->ready) {
 				return false;
 			}
 		}
@@ -35,11 +35,11 @@ typedef struct RoomInfo {
 
 
 
-bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
-void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, RoomInfo>& Rooms);
-int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, RoomInfo>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
-void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, RoomInfo>& Rooms);
-void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, RoomInfo>& Rooms );
+bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
+void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms);
+int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo);
+void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms);
+void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms);
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
 
 struct readyStatus {

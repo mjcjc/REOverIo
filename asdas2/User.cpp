@@ -3,7 +3,7 @@
 void User::Init(string* UserId)
 {
 
-	//strcpy(m_userId, UserId->c_str());
+	strcpy(m_userId, UserId->c_str());
 	cout << "init ¾ÆÀÌµğ : " << m_userId << endl;
 	const char alphanum[] =
 		"0123456789"
