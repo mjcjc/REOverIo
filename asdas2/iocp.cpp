@@ -137,19 +137,50 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 {
     RoomInResponse response;
     bool joinSuccess = RoomInSide(const_cast<RoomRequest&>(room), Rooms, LoginUser);
-    if (joinSuccess) {
-        strcpy_s(response.userName, room.userName);
+    if (!joinSuccess) return;
+
+    auto roomInfo = Rooms[room.roomId];
+    auto joiningUser = LoginUser[room.userName];
+
+    // 1. B에게 기존 유저들의 정보를 RoomInResponse로 전송
+    for (const auto& user : roomInfo->userinfo)
+    {
+        if (strcmp(user->m_userId, room.userName) == 0) continue; // 자기 자신 제외
+
         response.PacketId = ROOM_IN_SUCCESS;
         response.roomId = room.roomId;
+        strcpy_s(response.roomName, roomInfo->roomName);
+        strcpy_s(response.userName, user->m_userId);
 
         std::vector<char> serializedData = response.serialize();
-
-        for (auto& user : Rooms[room.roomId]->userinfo) {
-            SendPacket(serializedData, user->sock); 
-        }
+        SendPacket(serializedData, client_sock);  // B에게 A들 정보 전송
+        std::cout << "기존 유저 전송: " << response.userName << std::endl;
     }
 
-    
+    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
+    response.PacketId = ROOM_IN_SUCCESS;
+    response.roomId = room.roomId;
+    strcpy_s(response.roomName, roomInfo->roomName);
+    strcpy_s(response.userName, room.userName);
+
+    SendPacket(response.serialize(), client_sock); // B에게 자기 정보
+    std::cout << "본인 정보 전송: " << response.userName << std::endl;
+
+    // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
+    PlayerInfoGet newUserNotify;
+    newUserNotify.packetId = PLAYER_READY_TOGGLE_SUCCESS; // 혹은 PLAYER_JOIN_NOTIFY
+    newUserNotify.readyStatus = joiningUser->ready ? 1 : 0;
+    strcpy_s(newUserNotify.userName, room.userName);
+
+    std::vector<char> notifyPacket = newUserNotify.serialize();
+    for (const auto& user : roomInfo->userinfo)
+    {
+        if (strcmp(user->m_userId, room.userName) == 0) continue; // B 제외
+        SendPacket(notifyPacket, user->sock);
+        std::cout << "신규 유저 정보 전송 대상: " << user->m_userId << std::endl;
+    }
+
+    // 4. 로비 유저에게 방 목록 갱신
     RoomListSend();
 }
 
