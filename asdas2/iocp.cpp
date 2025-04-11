@@ -187,7 +187,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
             }
         }
     }
-    
+    RoomListSend();
 }
 
 
