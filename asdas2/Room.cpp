@@ -18,7 +18,6 @@ int GenerateRoomId()
 int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo)
 {
     shared_ptr<User> user = UserInfo[room.userName];
-
     auto newRoom = make_shared<RoomInfo>();
     user->host = true;
     user->ready = true;
