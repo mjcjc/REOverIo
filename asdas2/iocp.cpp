@@ -234,8 +234,9 @@ void RoomListSend()
                 response.userCount = room->userCount;
                 response.maxuserCount = room->maxUserCount;
                 response.roomMode = room->RoomMode;
+                cout << "¹æ ÀÌ¸§ :" << response.roomName << endl;
                 std::vector<char> serializedData = response.serialize();
-                SendPacket(serializedData, sock);
+                SendPacket(serializedData, user->sock);
             }
         }
     }
