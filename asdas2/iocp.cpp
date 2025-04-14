@@ -234,7 +234,6 @@ void RoomListSend()
                 response.userCount = room->userCount;
                 response.maxuserCount = room->maxUserCount;
                 response.roomMode = room->RoomMode;
-                cout << "방 이름 :" << response.roomName << endl;
                 std::vector<char> serializedData = response.serialize();
                 SendPacket(serializedData, user->sock);
             }
@@ -243,7 +242,6 @@ void RoomListSend()
 }
 void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 {
-    //listget구조체
 
     RoomOutSide(room, Rooms);
     room.PacketId = ROOM_LEAVE_SUCCESS;
@@ -370,6 +368,18 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomListSend();
     }
     break;
+    case USER_STATUS_LOGIN:
+    {
+        if (length < sizeof(PlayerStatus))
+        {
+            cerr << "Invalid RoomInfo packet size" << endl;
+        }
+        PlayerStatus packet = PlayerStatus::deserialize(
+            std::vector<char>(data, data + sizeof(PlayerStatus))
+        );
+		LoginScene(client_sock, Userkey);
+        break;
+    }
     default:
         cerr << "Unknown packet ID: " << PacketId << endl;
         break;

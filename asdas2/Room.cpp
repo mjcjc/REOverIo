@@ -141,6 +141,17 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, shared_ptr<Roo
 
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
 {
-	userkey[client_sock]->userState = User::USER_STATE_LOBBY;
+	if (userkey[client_sock]->userState != User::USER_STATE_LOBBY)
+	{
+		userkey[client_sock]->userState = User::USER_STATE_LOBBY;
+	}
+}
+
+void LoginScene(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
+{
+    if (userkey[client_sock]->userState != User::USER_STATE_NONE)
+    {
+        userkey[client_sock]->userState = User::USER_STATE_NONE;
+    }
 
 }
