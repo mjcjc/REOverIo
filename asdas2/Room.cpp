@@ -137,7 +137,10 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, shared_ptr<Roo
 
 	cout << "방 정보 수정" << endl;
 }
+void GameStart()
+{
 
+}
 
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
 {

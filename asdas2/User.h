@@ -26,6 +26,8 @@ public:
 	string m_userKey;
 	SOCKET sock;
 	bool Login = false;
+
+	
 private:
 
 

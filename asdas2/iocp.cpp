@@ -4,6 +4,7 @@
 #include"Room.h"
 #include"stSendContext.h"
 #include"OverlappedExPool.h"
+#include"GamePlayingPacket.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -104,11 +105,11 @@ void sendLogin(const LoginRequest& request, SOCKET client_sock) {
     strcpy_s(response.username, sizeof(response.username), request.username);
     if (Logrequest(const_cast<LoginRequest&>(request), LoginUser, client_sock)) {
         strcpy_s(response.message, sizeof(response.message), "Login successful");
-        response.PacketId = LOGIN_SUCCESS;
+        response.PacketId = static_cast<UINT16> (PacketStatus::LOGIN_SUCCESS);
     }
     else {
         strcpy_s(response.message, sizeof(response.message), "Someone is Login");
-        response.PacketId = LOGIN_FAIL;
+        response.PacketId = static_cast<UINT16>(PacketStatus::LOGIN_FAIL);
     }
     std::vector<char> serializedData = response.serialize();
     SendPacket(serializedData, client_sock);
@@ -121,10 +122,10 @@ void RoomMakeSendPacket(const RoomCreateRequest& room, SOCKET client_sock)
 
     if (getRoomid == Rooms[getRoomid]->roomId)
     {
-        response.PacketId = ROOM_CREATE_SUCCESS;
+        response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_CREATE_SUCCESS);
     }
     else {
-        response.PacketId = ROOM_CREATE_FAIL;
+        response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_CREATE_FAIL);
     }
     response.roomId = getRoomid;
     cout << "보낼때 룸 아이디" << response.roomId << endl;
@@ -148,7 +149,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
         if (user.get() == joiningUser.get()) continue; // 자기 자신 제외
 
         PlayerInfoGet info;
-        info.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        info.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
         info.readyStatus = user->ready;
         strcpy_s(info.userName, user->m_userId);
 
@@ -157,7 +158,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     }
 
     // 2. B 자신에게 RoomInResponse로 본인 정보 전송
-    response.PacketId = ROOM_IN_SUCCESS;
+    response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_IN_SUCCESS);
     response.roomId = room.roomId;
     strcpy_s(response.roomName, roomInfo->roomName);
     strcpy_s(response.userName, room.userName);
@@ -167,7 +168,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 
     // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
     PlayerInfoGet newUserNotify;
-    newUserNotify.packetId = PLAYER_READY_TOGGLE_SUCCESS; // 혹은 PLAYER_JOIN_NOTIFY
+    newUserNotify.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS); // 혹은 PLAYER_JOIN_NOTIFY
     newUserNotify.readyStatus = joiningUser->ready;
     strcpy_s(newUserNotify.userName, room.userName);
 
@@ -190,14 +191,13 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
     if (strcmp(room.userName, Rooms[room.roomId]->hostName) == 0)
     {
         RoomFixedUpdate(room, Rooms);
-        room.packetId = ROOM_UPDATE_SUCCESS;
+        room.packetId = static_cast<UINT16>(PacketStatus::ROOM_UPDATE_SUCCESS);
     }
     else {
-        room.packetId = ROOM_UPDATE_FAIL;
+        room.packetId = static_cast<UINT16>(PacketStatus::ROOM_UPDATE_FAIL);
     }
     std::vector<char> serializedData = room.serialize();
 
-    //이쪽을 broadcast로 변경.
     SendPacket(serializedData, client_sock);
 
 }
@@ -206,7 +206,7 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
     RoomSomeReady(const_cast<PlayerReadySend&>(room), Rooms);
     PlayerInfoGet response;
     response.readyStatus = room.readyStatus;
-    response.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+    response.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
     strcpy(response.userName, room.userName);
     std::vector<char> serializedData = response.serialize();
     SendPacket(serializedData, client_sock);
@@ -228,7 +228,7 @@ void RoomListSend()
         if (user->userState == User::USER_STATE_LOBBY) {
             for (const auto& [roomId, room] : Rooms) {
                 RoomListGet response;
-                response.packetID = ROOM_LOBY_UPDATE;
+                response.packetID = static_cast<UINT16>(PacketStatus::ROOM_LOBY_UPDATE);
                 strcpy_s(response.roomName, room->roomName);
                 strcpy_s(response.hostName, room->hostName);
                 response.userCount = room->userCount;
@@ -244,26 +244,37 @@ void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 {
 
     RoomOutSide(room, Rooms);
-    room.PacketId = ROOM_LEAVE_SUCCESS;
+    room.PacketId = static_cast<UINT16>(PacketStatus::ROOM_LEAVE_SUCCESS);
     std::vector<char> serializedData = room.serialize();
     SendPacket(serializedData, client_sock);
 
     RoomListSend();
 }
-
-void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
+void InGameMoveSendPacket(PlayerStatus& play)
 {
-    if (length < sizeof(UINT16)) {
-        cerr << "Inval  id packet size" << endl;
-        return;
-    }
+    MovePlayer();
+    play.packetID = static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY);
+    std::vector<char> serializedData = play.serialize();
+    for(auto& user : Rooms[])
+    SendPacket(serializedData,)
+}
+bool IsLobbyPacket(UINT16 packetId)
+{
+    return packetId >= static_cast<UINT16>(PacketStatus::LOGIN_REQUEST) &&
+        packetId <= static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_FAIL);
+}
+bool IsGamePacket(UINT16 packetId)
+{
+    return packetId >= static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY) &&
+        packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
+}
 
 
-    UINT16 PacketId;
-    std::memcpy(&PacketId, data, sizeof(UINT16));
-    cout << "패킷 ID : " << PacketId << endl;
-    switch (PacketId) {
-    case LOGIN_REQUEST: {
+void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
+{
+    auto lobbyplayerstatus = static_cast<PacketStatus>(PacketId);
+    switch (lobbyplayerstatus) {
+    case PacketStatus::LOGIN_REQUEST: {
         if (length < sizeof(LoginRequest)) {
             cerr << "Invalid LoginRequest packet size" << endl;
             return;
@@ -281,7 +292,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         cout << "로그인 패킷 처리" << endl;
         break;
     }
-    case ROOM_CREATE_REQUEST:
+    case PacketStatus::ROOM_CREATE_REQUEST:
     {
         if (length < sizeof(RoomCreateRequest))
         {
@@ -297,7 +308,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomMakeSendPacket(packet, client_sock);
     }
     break;
-    case ROOM_ENTER_REQUEST:
+    case PacketStatus::ROOM_ENTER_REQUEST:
     {
         if (length < sizeof(RoomRequest))
         {
@@ -313,7 +324,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomInSideSendPacket(packet, client_sock);
     }
     break;
-    case ROOM_LEAVE_REQUEST:
+    case PacketStatus::ROOM_LEAVE_REQUEST:
     {
         if (length < sizeof(RoomRequest))
         {
@@ -328,7 +339,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomOutSideSendPacket(packet, client_sock);
     }
     break;
-    case ROOM_UPDATE_NOTIFY:
+    case PacketStatus::ROOM_UPDATE_NOTIFY:
     {
         if (length < sizeof(RoomNOtify))
         {
@@ -342,7 +353,7 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomUpdateSendPacket(packet, client_sock);
     }
     break;
-    case PLAYER_READY_TOGGLE_REQUEST:
+    case PacketStatus::PLAYER_READY_TOGGLE_REQUEST:
     {
         if (length < sizeof(PlayerReadySend))
         {
@@ -355,21 +366,45 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         RoomReadySend(packet, client_sock);
     }
     break;
-    case USER_STATUS_LOBY:
+    case PacketStatus::USER_STATUS_LOBY:
     {
-        if (length < sizeof(PlayerStatus))
+        if (length < sizeof(PlayerinfoStatus))
         {
             cerr << "Invalid RoomInfo packet size" << endl;
         }
-		PlayerStatus packet = PlayerStatus::deserialize(
-			std::vector<char>(data, data + sizeof(PlayerStatus))
-		);
+        PlayerinfoStatus packet = PlayerinfoStatus::deserialize(
+            std::vector<char>(data, data + sizeof(PlayerinfoStatus))
+        );
         LobbyUser(client_sock, Userkey);
         RoomListSend();
     }
     break;
-    case USER_STATUS_LOGIN:
+
+    case PacketStatus::USER_STATUS_LOGIN:
     {
+        if (length < sizeof(PlayerinfoStatus))
+        {
+            cerr << "Invalid RoomInfo packet size" << endl;
+        }
+        PlayerinfoStatus packet = PlayerinfoStatus::deserialize(
+            std::vector<char>(data, data + sizeof(PlayerinfoStatus))
+        );
+        LoginScene(client_sock, Userkey);
+        break;
+    }
+
+
+    default:
+        cerr << "Unknown packet ID: " << PacketId << endl;
+        break;
+    }
+}
+void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
+{
+    auto ingamestatus = static_cast<PlayerPacketStatus>(PacketId);
+    switch (ingamestatus)
+    {
+    case PlayerPacketStatus::PLAYER_STATUS_NOTIFY:
         if (length < sizeof(PlayerStatus))
         {
             cerr << "Invalid RoomInfo packet size" << endl;
@@ -377,13 +412,30 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         PlayerStatus packet = PlayerStatus::deserialize(
             std::vector<char>(data, data + sizeof(PlayerStatus))
         );
-		LoginScene(client_sock, Userkey);
         break;
+
     }
-    default:
-        cerr << "Unknown packet ID: " << PacketId << endl;
-        break;
+}
+
+void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
+{
+    if (length < sizeof(UINT16)) {
+        cerr << "Inval  id packet size" << endl;
+        return;
     }
+
+
+    UINT16 PacketId;
+    std::memcpy(&PacketId, data, sizeof(UINT16));
+    if (IsLobbyPacket(PacketId))
+    {
+        ProcessLobbyPacket(PacketId, length, client_sock, data);
+    }
+    else if (IsGamePacket(PacketId))
+    {
+        ProcessInGamePacket(PacketId, length, client_sock, data);
+    }
+
 }
 int main() {
     if (!SockInit(ListenSock) || !LoadAcceptEx()) {

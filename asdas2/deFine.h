@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <MSWSock.h>
 #include <memory>
+#include <array>
 using namespace std;
 
 

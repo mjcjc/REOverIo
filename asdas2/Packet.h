@@ -1,7 +1,7 @@
 #pragma once
 #include "deFine.h"
 #pragma pack(push, 1)
-enum PacketStatus : UINT16
+enum class  PacketStatus : UINT16
 {
     NONE,
 
@@ -75,6 +75,35 @@ enum IsActive : UINT16 // BOOL 값을 못 넘기니까 우선 enum으로 바꾼거.
 {
     True,
     False,
+};
+enum class PlayerPacketStatus : UINT16
+{
+    NONE,
+
+    // ===== PLAYER 상태 =====
+    PLAYER_STATUS_NOTIFY,
+
+    // ===== ITEM: 먹기 =====
+    ITEM_PICKUP_REQUEST,
+    ITEM_PICKUP_SUCCESS,
+    ITEM_PICKUP_FAILED,
+
+    // ===== ITEM: 사용 =====
+    ITEM_USE_REQUEST,
+    ITEM_USE_SUCCESS,
+    ITEM_USE_FAILED,
+
+    // ===== ITEM: 버리기 =====
+    ITEM_DROP_REQUEST,
+    ITEM_DROP_SUCCESS,
+    ITEM_DROP_FAILED,
+
+    // ===== ITEM: 장착 =====
+    ITEM_EQUIP_REQUEST,
+    ITEM_EQUIP_SUCCESS,
+    ITEM_EQUIP_FAILED,
+
+
 };
 
 #define ADD_SERIALIZE_FUNCS(T) \
@@ -166,10 +195,10 @@ typedef struct PlayerInfoGet {
 	ADD_SERIALIZE_FUNCS(PlayerInfoGet)
 };
 //플레이어 상태
-typedef struct PlayerStatus {
+typedef struct PlayerinfoStatus {
 	UINT16 packetId;
 	uint32_t roomID;
-	ADD_SERIALIZE_FUNCS(PlayerStatus)
+	ADD_SERIALIZE_FUNCS(PlayerinfoStatus)
 };
 //방 만들어진 정보 던져주는거
 typedef struct RoomListGet
@@ -181,6 +210,82 @@ typedef struct RoomListGet
     uint32_t maxuserCount;
     UINT16 roomMode;
 	ADD_SERIALIZE_FUNCS(RoomListGet)
+};
+
+struct PlayerStatus
+{
+    UINT16 packetID;
+    char playerId[32]; // 플레이어 ID
+
+    float positionX; // 플레이어 위치
+    float positionY;
+    float positionZ;
+
+    float rotationX; // 플레이어 회전
+    float rotationY;
+    float rotationZ;
+
+    float viewDirectionX; // 플레이어의 시선 방향 (카메라의 회전값)
+    float viewDirectionY;
+    float viewDirectionZ;
+
+    UINT16 movementState;    // ex: 0=Idle, 1=Walk, 2=Run
+    UINT16 aimState;         // 0: 일반 / 1: 조준 중
+    UINT16 actionState;      // ex: 0=None, 1=Reloading, 2=Attacking
+    float speed;             // 애니메이션 동작할때 속도제어를 하게 될경우 필요한 정보
+    float directionX;        // 움직일때 애니메이션 제어에 필요한 방향 정보
+    float directionY;
+    ADD_SERIALIZE_FUNCS(PlayerStatus)
+};
+
+// 아이템 먹기 이벤트 구조체
+struct ItemPickupEvent
+{
+    UINT16 packetID; // 패킷 ID
+
+
+    char playerId[32]; // 플레이어 ID
+
+    UINT16 itemID;   // 먹은 아이템 ID
+    ADD_SERIALIZE_FUNCS(ItemPickupEvent)
+};
+
+// 아이템 사용 이벤트 구조체
+struct ItemUseEvent
+{
+    UINT16 packetID; // 패킷 ID
+
+
+    char playerId[32]; // 플레이어 ID
+
+    UINT16 itemID;    // 사용한 아이템 ID
+    UINT16 slotIndex; // 아이템이 위치한 슬롯 인덱스
+    ADD_SERIALIZE_FUNCS(ItemUseEvent)
+};
+// 아이템 버리기 이벤트 구조체
+struct ItemDropEvent
+{
+    UINT16 packetID; // 패킷 ID
+
+
+    char playerId[32]; // 플레이어 ID
+
+    UINT16 itemID;    // 버린 아이템 ID
+    UINT16 slotIndex; // 버린 아이템이 있는 슬롯 인덱스
+    ADD_SERIALIZE_FUNCS(ItemDropEvent)
+};
+
+// 아이템 장착 이벤트 구조체
+struct ItemEquipEvent
+{
+    UINT16 packetID; // 패킷 ID
+
+    char playerId[32]; // 플레이어 ID
+
+    UINT16 itemID;     // 장착한 아이템 ID
+    UINT16 isEquipped; // 0: 아이템을 들고 있지 않음, 1: 아이템을 들고 있음 (장착 여부)
+    UINT16 slotIndex;  // 장착된 아이템이 위치한 인벤토리 슬롯 인덱스 (슬롯 0~3)
+    ADD_SERIALIZE_FUNCS(ItemEquipEvent)
 };
 #pragma pack(pop)
 
