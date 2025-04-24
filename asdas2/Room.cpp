@@ -1,6 +1,6 @@
 #include"Packet.h"
 #include"User.h"
-
+#include"GamePlayingPacket.h"
 #include <algorithm>
 #include"Room.h"
 
@@ -137,9 +137,27 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, shared_ptr<Roo
 
 	cout << "방 정보 수정" << endl;
 }
-void GameStart()
+void GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerinfoStatus& info)
 {
-
+    int count = 0;
+    //방 아이디 찾아서 유저 객체를 가져오고 반복문을 돌려 멤버변수의 ready값이 true이면 play함수 호출
+    for (auto readyuser : Rooms[info.roomID]->userinfo)
+    {
+		if (readyuser->ready == true)
+		{
+            count++;
+		}
+    }
+	if (count == Rooms[info.roomID]->userCount)
+	{
+		cout << "게임 시작" << endl;
+        MovePlayer();
+    }
+    else {
+		cout << "게임 시작 못함" << endl;
+    }
+   
+ 
 }
 
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)

@@ -38,6 +38,10 @@ enum class  PacketStatus : UINT16
     PLAYER_READY_TOGGLE_REQUEST,  // 플레이어 준비 상태 토글 요청
     PLAYER_READY_TOGGLE_SUCCESS,  // 준비 상태 변경 성공
     PLAYER_READY_TOGGLE_FAIL,     // 준비 상태 변경 실패
+    
+	HOST_START_GAME_REQUEST, // 호스트가 게임 시작 요청
+	HOST_START_GAME_SUCCESS, // 호스트가 게임 시작 성공
+	HOST_START_GAME_FAIL,    // 호스트가 게임 시작 실패
 
 };
 enum ItemID : UINT16 // 메인미션 및 아이템을 구분 짓는 ID ==> 플레이어 인벤토리에 들어갈 수 있는 아이템 종류들

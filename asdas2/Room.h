@@ -22,14 +22,7 @@ typedef struct RoomInfo {
 	uint32_t userCount;//유저현재
 	uint32_t maxUserCount;//유저 최대
 	
-	bool isAllReady() const {
-		for (const auto& user : userinfo) {
-			if (!user->ready) {
-				return false;
-			}
-		}
-		return true;
-	}
+	
 }RoomInfo;
 //이건 모든 유저에게 뿌릴 데이터. 방에 들어왔을때.
 
@@ -42,6 +35,8 @@ void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, shared_ptr<Ro
 void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms);
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
 void LoginScene(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
+void GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerinfoStatus& info);
+
 struct readyStatus {
 	UINT16 packetId;
 	uint32_t userId;

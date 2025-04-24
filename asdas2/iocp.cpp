@@ -366,6 +366,18 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         RoomReadySend(packet, client_sock);
     }
     break;
+    case PacketStatus::HOST_START_GAME_REQUEST:
+    {
+		if (length < sizeof(PlayerinfoStatus))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        PlayerinfoStatus packet = PlayerinfoStatus::deserialize(
+            std::vector<char>(data, data + sizeof(PlayerinfoStatus))
+        );
+		GameStart(Rooms, packet);
+        break;
+    }
     case PacketStatus::USER_STATUS_LOBY:
     {
         if (length < sizeof(PlayerinfoStatus))
