@@ -35,7 +35,7 @@ void RoomFixedUpdate(RoomNOtify& FixRoom , unordered_map<uint32_t, shared_ptr<Ro
 void RoomSomeReady(PlayerReadySend& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms);
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
 void LoginScene(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey);
-void GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerinfoStatus& info);
+bool GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info);
 
 struct readyStatus {
 	UINT16 packetId;

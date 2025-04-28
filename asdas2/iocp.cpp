@@ -49,7 +49,6 @@ bool SockInit(SOCKET& listenSock) {
 
     return true;
 }
-
 // AcceptEx 함수 포인터 가져오기
 bool LoadAcceptEx() {
     GUID GuidAcceptEx = WSAID_ACCEPTEX;
@@ -57,7 +56,6 @@ bool LoadAcceptEx() {
     return (WSAIoctl(ListenSock, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidAcceptEx, sizeof(GuidAcceptEx),
         &AcceptExFunc, sizeof(AcceptExFunc), &dwBytes, NULL, NULL) == 0);
 }
-
 // 새로운 AcceptEx 요청 등록
 void PostAccept(HANDLE hIOCP) {
     SOCKET client = socket(AF_INET, SOCK_STREAM, 0); // 새 클라이언트 소켓 생성
@@ -99,7 +97,6 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
         delete[] overlp->wsabuf.buf;
     }
 }
-
 void sendLogin(const LoginRequest& request, SOCKET client_sock) {
     LoginResponse response;
     strcpy_s(response.username, sizeof(response.username), request.username);
@@ -183,8 +180,6 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     // 4. 로비 유저에게 방 목록 갱신
     RoomListSend();
 }
-
-
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
     cout << "들어는감." << endl;
@@ -221,7 +216,6 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
     }
 
 }
-
 void RoomListSend()
 {
     for (auto& [sock, user] : Userkey) {
@@ -250,26 +244,107 @@ void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
 
     RoomListSend();
 }
-void InGameMoveSendPacket(PlayerStatus& play)
+void InGameStart(RoomStart& play, SOCKET client_sock)
 {
-    MovePlayer();
-    play.packetID = static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY);
-    std::vector<char> serializedData = play.serialize();
-    for(auto& user : Rooms[])
-    SendPacket(serializedData,)
+   
+    if (GameStart(Rooms, play))
+    {
+        play.packetID = static_cast<UINT16>(PacketStatus::ROOM_START_SUCCESS);
+        std::vector<char> serializedData = play.serialize();
+		for (auto& user : Rooms[play.roomID]->userinfo)
+		{
+			SendPacket(serializedData, user->sock);
+			cout << "게임 시작" << endl;
+		}
+    }
+    else {
+        play.packetID = static_cast<UINT16>(PacketStatus::ROOM_START_FAIL);
+		std::vector<char> serializedData = play.serialize();
+		SendPacket(serializedData, client_sock);
+    }
 }
+void MoveBroadCast(PlayerStatus& player)
+{
+    InGamePlayer(Rooms, player); // 우선 해당 플레이어 위치 업데이트
+
+    shared_ptr<RoomInfo> foundRoom = nullptr;
+
+    // 플레이어 ID로 방 찾기
+    for (auto& [roomId, roomInfo] : Rooms)
+    {
+        for (auto& user : roomInfo->userinfo)
+        {
+            if (strcmp(user->m_userId, player.playerId) == 0)
+            {
+                foundRoom = roomInfo;
+                break;
+            }
+        }
+        if (foundRoom) break;
+    }
+
+    if (!foundRoom)
+    {
+        cout << "MoveBroadCast: 방을 찾지 못했음" << endl;
+        return;
+    }
+
+    uint32_t roomId = foundRoom->roomId;
+
+    // GameStartUser에서 현재 방의 GamePlayer 리스트 가져오기
+    auto it = GameStartUsers.find(roomId);
+    if (it == GameStartUsers.end())
+    {
+        cout << "MoveBroadCast: GameStartUser 안에 해당 방 없음" << endl;
+        return;
+    }
+
+    vector<GamePlayer>& players = it->second;
+
+    // 이제 방 안에 있는 모든 유저한테 상태 브로드캐스트
+    for (auto& user : foundRoom->userinfo)
+    {
+        // user->sock로 SendPacket() 보낼 준비
+        for (auto& playerData : players)
+        {
+            if (strcmp(playerData.user->m_userId, user->m_userId) == 0)
+            {
+                PlayerStatus sendPacket;
+                memset(&sendPacket, 0, sizeof(sendPacket));
+
+                sendPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY);
+                strcpy(sendPacket.playerId, playerData.user->m_userId);
+
+                sendPacket.positionX = playerData.x;
+                sendPacket.positionY = playerData.y;
+                sendPacket.positionZ = playerData.z;
+				cout << sendPacket.positionX << endl;
+				cout << sendPacket.positionY << endl;
+				cout << sendPacket.positionZ << endl;
+                // 추가로 rotation, viewDirection, speed 등등도 복사할 수 있음
+
+                // 직렬화
+                std::vector<char> serializedData(sizeof(sendPacket));
+                memcpy(serializedData.data(), &sendPacket, sizeof(sendPacket));
+
+                SendPacket(serializedData, user->sock);
+            }
+        }
+    }
+
+    cout << "MoveBroadCast: 방 전체 유저에게 데이터 전송 완료" << endl;
+}
+
 bool IsLobbyPacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PacketStatus::LOGIN_REQUEST) &&
-        packetId <= static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_FAIL);
+        packetId <= static_cast<UINT16>(PacketStatus::ROOM_START_FAIL);
 }
 bool IsGamePacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY) &&
         packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
 }
-
-
 void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto lobbyplayerstatus = static_cast<PacketStatus>(PacketId);
@@ -366,18 +441,20 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         RoomReadySend(packet, client_sock);
     }
     break;
-    case PacketStatus::HOST_START_GAME_REQUEST:
+    case PacketStatus::ROOM_START_REQUEST:
     {
-		if (length < sizeof(PlayerinfoStatus))
+		if (length < sizeof(RoomStart))
 		{
 			cerr << "Invalid RoomInfo packet size" << endl;
 		}
-        PlayerinfoStatus packet = PlayerinfoStatus::deserialize(
-            std::vector<char>(data, data + sizeof(PlayerinfoStatus))
+        RoomStart packet = RoomStart::deserialize(
+            std::vector<char>(data, data + sizeof(RoomStart))
         );
-		GameStart(Rooms, packet);
-        break;
+        
+        InGameStart(packet, client_sock);
+		
     }
+        break;
     case PacketStatus::USER_STATUS_LOBY:
     {
         if (length < sizeof(PlayerinfoStatus))
@@ -424,11 +501,11 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
         PlayerStatus packet = PlayerStatus::deserialize(
             std::vector<char>(data, data + sizeof(PlayerStatus))
         );
+        MoveBroadCast(packet);
         break;
 
     }
 }
-
 void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 {
     if (length < sizeof(UINT16)) {
@@ -436,19 +513,22 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
         return;
     }
 
-
     UINT16 PacketId;
     std::memcpy(&PacketId, data, sizeof(UINT16));
+\
     if (IsLobbyPacket(PacketId))
     {
+  
         ProcessLobbyPacket(PacketId, length, client_sock, data);
     }
     else if (IsGamePacket(PacketId))
     {
+       
         ProcessInGamePacket(PacketId, length, client_sock, data);
     }
 
 }
+
 int main() {
     if (!SockInit(ListenSock) || !LoadAcceptEx()) {
         return -1;

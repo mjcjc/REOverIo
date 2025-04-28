@@ -14,7 +14,6 @@ int GenerateRoomId()
     uniform_int_distribution<int> dist(0, 9999);
     return dist(gen);
 }
-
 int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, unordered_map<string, shared_ptr<User>>& UserInfo)
 {
     shared_ptr<User> user = UserInfo[room.userName];
@@ -57,7 +56,7 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, shared_ptr<RoomInf
 }
 void RoomOutSide(RoomRequest& userinfo, unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms)
 {
-    // 
+
 	auto roomId = Rooms.find(userinfo.roomId);
 	if (roomId == Rooms.end())
 	{
@@ -137,7 +136,7 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, shared_ptr<Roo
 
 	cout << "방 정보 수정" << endl;
 }
-void GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerinfoStatus& info)
+bool GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info)
 {
     int count = 0;
     //방 아이디 찾아서 유저 객체를 가져오고 반복문을 돌려 멤버변수의 ready값이 true이면 play함수 호출
@@ -150,14 +149,13 @@ void GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerinfoS
     }
 	if (count == Rooms[info.roomID]->userCount)
 	{
-		cout << "게임 시작" << endl;
-        MovePlayer();
+        MovePlayer(Rooms, info);
+        return true;
     }
     else {
 		cout << "게임 시작 못함" << endl;
+        return false;
     }
-   
- 
 }
 
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
