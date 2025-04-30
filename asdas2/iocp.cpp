@@ -327,7 +327,7 @@ void MoveBroadCast(PlayerStatus& player)
                 std::vector<char> serializedData(sizeof(sendPacket));
                 memcpy(serializedData.data(), &sendPacket, sizeof(sendPacket));
 
-                SendPacket(serializedData, user->sock);
+                SendPacket(serializedData, playerData.sock);
             }
         }
     }
@@ -348,6 +348,7 @@ bool IsGamePacket(UINT16 packetId)
 void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto lobbyplayerstatus = static_cast<PacketStatus>(PacketId);
+    cout << "받은 패킷 데이터:" << PacketId << endl;
     switch (lobbyplayerstatus) {
     case PacketStatus::LOGIN_REQUEST: {
         if (length < sizeof(LoginRequest)) {
@@ -358,13 +359,7 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         LoginRequest packet = LoginRequest::deserialize(
             std::vector<char>(data, data + sizeof(LoginRequest))
         );
-
-        cout << "받은 패킷 데이터:" << endl;
-        cout << "PacketId: " << packet.PacketId << endl;
-        cout << "Username: " << packet.username << endl;
-
         sendLogin(packet, client_sock);
-        cout << "로그인 패킷 처리" << endl;
         break;
     }
     case PacketStatus::ROOM_CREATE_REQUEST:
@@ -377,9 +372,7 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
             std::vector<char>(data, data + sizeof(RoomCreateRequest))
         );
 
-        cout << "받은 패킷 데이터:" << endl;
-        cout << "PacketId: " << packet.PacketId << endl;
-        cout << "Username: " << packet.userName << endl;
+        
         RoomMakeSendPacket(packet, client_sock);
     }
     break;
@@ -392,10 +385,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         RoomRequest packet = RoomRequest::deserialize(
             std::vector<char>(data, data + sizeof(RoomRequest))
         );
-        cout << "여기!" << endl;
-        cout << "받은 패킷 데이터:" << endl;
-        cout << "PacketId: " << packet.PacketId << endl;
-        cout << "Username: " << packet.userName << endl;
         RoomInSideSendPacket(packet, client_sock);
     }
     break;
@@ -408,9 +397,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         RoomRequest packet = RoomRequest::deserialize(
             std::vector<char>(data, data + sizeof(RoomRequest))
         );
-        cout << "받은 패킷 데이터:" << endl;
-        cout << "PacketId: " << packet.PacketId << endl;
-        cout << "Username: " << packet.userName << endl;
         RoomOutSideSendPacket(packet, client_sock);
     }
     break;
@@ -423,8 +409,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         RoomNOtify packet = RoomNOtify::deserialize(
             std::vector<char>(data, data + sizeof(RoomNOtify))
         );
-        cout << "받은 패킷 데이터:" << endl;
-        //cout << "PacketId: " << packet.PacketId << endl;
         RoomUpdateSendPacket(packet, client_sock);
     }
     break;
@@ -437,7 +421,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         PlayerReadySend packet = PlayerReadySend::deserialize(
             std::vector<char>(data, data + sizeof(PlayerReadySend))
         );
-        cout << "받은 패킷 데이터:" << endl;
         RoomReadySend(packet, client_sock);
     }
     break;
@@ -491,6 +474,7 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
 void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto ingamestatus = static_cast<PlayerPacketStatus>(PacketId);
+	cout << "받은 패킷 데이터:" << PacketId << endl;
     switch (ingamestatus)
     {
     case PlayerPacketStatus::PLAYER_STATUS_NOTIFY:
@@ -515,7 +499,6 @@ void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
 
     UINT16 PacketId;
     std::memcpy(&PacketId, data, sizeof(UINT16));
-\
     if (IsLobbyPacket(PacketId))
     {
   

@@ -6,42 +6,42 @@ enum class  PacketStatus : UINT16
     NONE,
 
     // Client
-    LOGIN_REQUEST,
-    LOGIN_SUCCESS,
-    LOGIN_FAIL,
+    LOGIN_REQUEST = 100,
+    LOGIN_SUCCESS = 101,
+    LOGIN_FAIL = 102,
 
-    ROOM_CREATE_REQUEST,       // 방 생성 요청
-    ROOM_CREATE_SUCCESS,
-    ROOM_CREATE_FAIL,
+    ROOM_CREATE_REQUEST = 110,       // 방 생성 요청
+    ROOM_CREATE_SUCCESS = 111,
+    ROOM_CREATE_FAIL = 112,
 
-    ROOM_ENTER_REQUEST,        // 방 입장 요청
-    ROOM_IN_SUCCESS,        // 방 입장 성공
-    ROOM_IN_FAIL,              // 방 입장 실패
+    ROOM_ENTER_REQUEST = 120,        // 방 입장 요청
+    ROOM_IN_SUCCESS = 121,        // 방 입장 성공
+    ROOM_IN_FAIL = 122,              // 방 입장 실패
 
-    ROOM_LEAVE_REQUEST,        // 방 나가기 요청
-    ROOM_LEAVE_SUCCESS,        // 방 나가기 성공
-    ROOM_LEAVE_FAIL,           // 방 나가기 실패
+    ROOM_LEAVE_REQUEST = 130,        // 방 나가기 요청
+    ROOM_LEAVE_SUCCESS = 131,        // 방 나가기 성공
+    ROOM_LEAVE_FAIL = 132,           // 방 나가기 실패
 
-    ROOM_UPDATE_NOTIFY,        // 방 정보 변경 (방설정 업데이트)  
-    ROOM_UPDATE_SUCCESS,       // 방 정보 성공
-    ROOM_UPDATE_FAIL,           // 방 정보 실패
+    ROOM_UPDATE_NOTIFY = 140,        // 방 정보 변경 (방설정 업데이트)  
+    ROOM_UPDATE_SUCCESS = 141,       // 방 정보 성공
+    ROOM_UPDATE_FAIL = 142,           // 방 정보 실패
 
-    ROOM_CLOSE_REQUEST,        // 방 닫기 요청
-    ROOM_CLOSE_SUCCESS,        // 방 닫기 성공
-    ROOM_CLOSE_FAIL,           // 방 닫기 실패
+    ROOM_CLOSE_REQUEST = 150,        // 방 닫기 요청
+    ROOM_CLOSE_SUCCESS = 151,        // 방 닫기 성공
+    ROOM_CLOSE_FAIL = 152,           // 방 닫기 실패
 
-    ROOM_LOBY_UPDATE,      //방 정보 리스트 받는거
+    ROOM_LOBY_UPDATE = 160,      //방 정보 리스트 받는거
 
-    USER_STATUS_LOBY,    //플레이어 로비에 있는 경우
-    USER_STATUS_LOGIN,  //플레이어 로그인하고 난 경우?
+    USER_STATUS_LOBY = 200,    //플레이어 로비에 있는 경우
+    USER_STATUS_LOGIN = 300,  //플레이어 로그인하고 난 경우?
 
-    PLAYER_READY_TOGGLE_REQUEST,  // 플레이어 준비 상태 토글 요청
-    PLAYER_READY_TOGGLE_SUCCESS,  // 준비 상태 변경 성공
-    PLAYER_READY_TOGGLE_FAIL,     // 준비 상태 변경 실패
+    PLAYER_READY_TOGGLE_REQUEST = 170,  // 플레이어 준비 상태 토글 요청
+    PLAYER_READY_TOGGLE_SUCCESS = 171,  // 준비 상태 변경 성공
+    PLAYER_READY_TOGGLE_FAIL = 172,     // 준비 상태 변경 실패
 
-    ROOM_START_REQUEST, //방에서 게임 시작
-    ROOM_START_SUCCESS, //방에서 게임 시작 성공시
-    ROOM_START_FAIL, //방에서 게임 시작 실패시
+    ROOM_START_REQUEST = 180, //방에서 게임 시작
+    ROOM_START_SUCCESS = 181, //방에서 게임 시작 성공시
+    ROOM_START_FAIL = 182, //방에서 게임 시작 실패시
 
 };
 enum ItemID : UINT16 // 메인미션 및 아이템을 구분 짓는 ID ==> 플레이어 인벤토리에 들어갈 수 있는 아이템 종류들
@@ -82,30 +82,30 @@ enum IsActive : UINT16 // BOOL 값을 못 넘기니까 우선 enum으로 바꾼거.
 };
 enum class PlayerPacketStatus : UINT16
 {
-    NONE,
+    NONE = 1000,
 
     // ===== PLAYER 상태 =====
-    PLAYER_STATUS_NOTIFY,
+    PLAYER_STATUS_NOTIFY = 1001,
 
     // ===== ITEM: 먹기 =====
-    ITEM_PICKUP_REQUEST,
-    ITEM_PICKUP_SUCCESS,
-    ITEM_PICKUP_FAILED,
+    ITEM_PICKUP_REQUEST = 1010,
+    ITEM_PICKUP_SUCCESS = 1011,
+    ITEM_PICKUP_FAILED = 1012,
 
     // ===== ITEM: 사용 =====
-    ITEM_USE_REQUEST,
-    ITEM_USE_SUCCESS,
-    ITEM_USE_FAILED,
+    ITEM_USE_REQUEST = 1020,
+    ITEM_USE_SUCCESS = 1021,
+    ITEM_USE_FAILED = 1022,
 
     // ===== ITEM: 버리기 =====
-    ITEM_DROP_REQUEST,
-    ITEM_DROP_SUCCESS,
-    ITEM_DROP_FAILED,
+    ITEM_DROP_REQUEST = 1030,
+    ITEM_DROP_SUCCESS = 1031,
+    ITEM_DROP_FAILED = 1032,
 
     // ===== ITEM: 장착 =====
-    ITEM_EQUIP_REQUEST,
-    ITEM_EQUIP_SUCCESS,
-    ITEM_EQUIP_FAILED,
+    ITEM_EQUIP_REQUEST = 1040 ,
+    ITEM_EQUIP_SUCCESS = 1041,
+    ITEM_EQUIP_FAILED = 1042,
 
 
 };
