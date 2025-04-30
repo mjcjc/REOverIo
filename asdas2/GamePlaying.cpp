@@ -16,7 +16,9 @@ void MovePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart&
         player.x = 0;
         player.y = 0;
         player.z = 0;
-
+        player.rotationX = 0;
+        player.rotationY = 0;
+        player.rotationZ = 0;
         for (int i = 0; i < 4; ++i)
         {
             player.inven.iteminfo[i] = 0;
@@ -65,6 +67,9 @@ void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerSt
             player.x = SomePlayer.positionX;
             player.y = SomePlayer.positionY;
             player.z = SomePlayer.positionZ;
+			player.rotationX = SomePlayer.rotationX;
+			player.rotationY = SomePlayer.rotationY;
+			player.rotationZ = SomePlayer.rotationZ;
 
             // rotation이나 방향 같은 것도 복사하려면 여기에 추가
             cout << "플레이어 위치 업데이트 완료" << endl;

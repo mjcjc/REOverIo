@@ -265,11 +265,11 @@ void InGameStart(RoomStart& play, SOCKET client_sock)
 }
 void MoveBroadCast(PlayerStatus& player)
 {
-    InGamePlayer(Rooms, player); // 우선 해당 플레이어 위치 업데이트
+    InGamePlayer(Rooms, player); // 위치 갱신
 
     shared_ptr<RoomInfo> foundRoom = nullptr;
 
-    // 플레이어 ID로 방 찾기
+    // 1. 방 찾기
     for (auto& [roomId, roomInfo] : Rooms)
     {
         for (auto& user : roomInfo->userinfo)
@@ -283,57 +283,44 @@ void MoveBroadCast(PlayerStatus& player)
         if (foundRoom) break;
     }
 
-    if (!foundRoom)
-    {
-        cout << "MoveBroadCast: 방을 찾지 못했음" << endl;
-        return;
-    }
-
+    if (!foundRoom) return;
     uint32_t roomId = foundRoom->roomId;
 
-    // GameStartUser에서 현재 방의 GamePlayer 리스트 가져오기
     auto it = GameStartUsers.find(roomId);
-    if (it == GameStartUsers.end())
-    {
-        cout << "MoveBroadCast: GameStartUser 안에 해당 방 없음" << endl;
-        return;
-    }
+    if (it == GameStartUsers.end()) return;
 
     vector<GamePlayer>& players = it->second;
 
-    // 이제 방 안에 있는 모든 유저한테 상태 브로드캐스트
-    for (auto& user : foundRoom->userinfo)
+    // 2. 방의 모든 유저에게
+    for (auto& receiver : foundRoom->userinfo)
     {
-        // user->sock로 SendPacket() 보낼 준비
+        // 3. 모든 플레이어 정보를 브로드캐스트
         for (auto& playerData : players)
         {
-            if (strcmp(playerData.user->m_userId, user->m_userId) == 0)
-            {
-                PlayerStatus sendPacket;
-                memset(&sendPacket, 0, sizeof(sendPacket));
+            // 자기 자신이면 건너뜀
+            if (strcmp(playerData.user->m_userId, receiver->m_userId) == 0)
+                continue;
 
-                sendPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY);
-                strcpy(sendPacket.playerId, playerData.user->m_userId);
+            PlayerStatus sendPacket{};
+            sendPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY);
+            strncpy(sendPacket.playerId, playerData.user->m_userId, sizeof(sendPacket.playerId));
+            sendPacket.playerId[sizeof(sendPacket.playerId) - 1] = '\0';
 
-                sendPacket.positionX = playerData.x;
-                sendPacket.positionY = playerData.y;
-                sendPacket.positionZ = playerData.z;
-				cout << sendPacket.positionX << endl;
-				cout << sendPacket.positionY << endl;
-				cout << sendPacket.positionZ << endl;
-                // 추가로 rotation, viewDirection, speed 등등도 복사할 수 있음
+            sendPacket.positionX = playerData.x;
+            sendPacket.positionY = playerData.y;
+            sendPacket.positionZ = playerData.z;
 
-                // 직렬화
-                std::vector<char> serializedData(sizeof(sendPacket));
-                memcpy(serializedData.data(), &sendPacket, sizeof(sendPacket));
+            sendPacket.rotationX = playerData.rotationX;
+            sendPacket.rotationY = playerData.rotationY;
+            sendPacket.rotationZ = playerData.rotationZ;
 
-                SendPacket(serializedData, playerData.sock);
-            }
+            // 직렬화 후 전송
+            std::vector<char> serializedData = sendPacket.serialize();
+            SendPacket(serializedData, receiver->sock);
         }
     }
-
-    cout << "MoveBroadCast: 방 전체 유저에게 데이터 전송 완료" << endl;
 }
+
 
 bool IsLobbyPacket(UINT16 packetId)
 {

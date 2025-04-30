@@ -13,6 +13,7 @@ struct GamePlayer {
     shared_ptr<User> user;
     SOCKET sock;
     float x,y,z;
+	float rotationX, rotationY, rotationZ;
     Inventory inven;
 };
 
