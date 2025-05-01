@@ -5,7 +5,6 @@ enum class  PacketStatus : UINT16
 {
     NONE,
 
-    // Client
     LOGIN_REQUEST = 100,
     LOGIN_SUCCESS = 101,
     LOGIN_FAIL = 102,

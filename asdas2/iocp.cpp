@@ -194,6 +194,7 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
     std::vector<char> serializedData = room.serialize();
 
     SendPacket(serializedData, client_sock);
+    RoomListSend();
 
 }
 void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
@@ -218,6 +219,7 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 }
 void RoomListSend()
 {
+    cout << "보냄" << endl;
     for (auto& [sock, user] : Userkey) {
         if (user->userState == User::USER_STATE_LOBBY) {
             for (const auto& [roomId, room] : Rooms) {
@@ -325,7 +327,7 @@ void MoveBroadCast(PlayerStatus& player)
 bool IsLobbyPacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PacketStatus::LOGIN_REQUEST) &&
-        packetId <= static_cast<UINT16>(PacketStatus::ROOM_START_FAIL);
+        packetId <= static_cast<UINT16>(PacketStatus::USER_STATUS_LOGIN);
 }
 bool IsGamePacket(UINT16 packetId)
 {
@@ -427,6 +429,7 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         break;
     case PacketStatus::USER_STATUS_LOBY:
     {
+        cout << "여기 왜 안들어오지" << endl;
         if (length < sizeof(PlayerinfoStatus))
         {
             cerr << "Invalid RoomInfo packet size" << endl;

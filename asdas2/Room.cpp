@@ -160,6 +160,7 @@ bool GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& 
 
 void LobbyUser(SOCKET client_sock, unordered_map<SOCKET, shared_ptr<User>>& userkey)
 {
+    cout << "이쪽 한번 전송됨" << endl;
 	if (userkey[client_sock]->userState != User::USER_STATE_LOBBY)
 	{
 		userkey[client_sock]->userState = User::USER_STATE_LOBBY;
