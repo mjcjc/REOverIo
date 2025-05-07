@@ -1,13 +1,12 @@
 #include"GamePlayingPacket.h"
+#include"item.h"
 
 
-
-void MovePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info)
+void InitPlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info)
 {
-    // info.roomID로 방을 찾아서
+    //TODO 유저별로 직업 설정 안됨
     uint32_t roomId = info.roomID;
-
-    // 해당 방 안에 있는 모든 유저를 하나씩 GamePlayer로 만들어서
+   
     for (auto& user : Rooms[roomId]->userinfo)
     {
         GamePlayer player;
@@ -26,7 +25,6 @@ void MovePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart&
         GameStartUsers[roomId].push_back(player);
     }
 }
-
 void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerStatus& SomePlayer)
 {
     shared_ptr<RoomInfo> foundRoom = nullptr;
@@ -59,7 +57,7 @@ void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerSt
 
     vector<GamePlayer>& players = it->second;
 
-    // 여기서 vector 안을 다시 검색해야 함!
+
     for (auto& player : players)
     {
         if (strcmp(player.user->m_userId, SomePlayer.playerId) == 0)
@@ -70,12 +68,140 @@ void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerSt
 			player.rotationX = SomePlayer.rotationX;
 			player.rotationY = SomePlayer.rotationY;
 			player.rotationZ = SomePlayer.rotationZ;
-
-            // rotation이나 방향 같은 것도 복사하려면 여기에 추가
+    
             cout << "플레이어 위치 업데이트 완료" << endl;
             return;
         }
     }
 
     cout << "GameStartUser 안에서도 해당 플레이어를 찾지 못했음" << endl;
+}
+
+bool InventoryItemAdd(ItemPickupEvent& PickItem)
+{
+    const char* playerId = PickItem.playerId;
+    bool found = false;
+
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (auto& player : players)
+        {
+            if (strcmp(player.user->m_userId, playerId) == 0)
+            {
+                // 여기에 원하는 처리 수행
+                cout << "플레이어가 속한 방 ID: " << roomId << endl;
+                cout << "아이템 ID: " << PickItem.itemID << ", 오브젝트 ID: " << PickItem.WorldObjectID << endl;
+
+                // 예: 인벤토리에 아이템 추가
+                for (auto& slot : player.inven.iteminfo)
+                {
+                    if (slot == 0)
+                    {
+                        slot = PickItem.itemID;
+                        cout << "아이템 추가 완료" << endl;
+                        return true;
+                        break;
+                    }
+                }
+
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+
+    if (!found)
+    {
+        cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
+    }
+}
+
+bool InventoryItemRemove(ItemDropEvent& DropItem)
+{
+    const char* playerId = DropItem.playerId;
+    bool found = false;
+
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (auto& player : players)
+        {
+            if (strcmp(player.user->m_userId, playerId) == 0)
+            {
+                // 여기에 원하는 처리 수행
+                cout << "플레이어가 속한 방 ID: " << roomId << endl;
+                cout << "아이템 ID: " << DropItem.itemID << ", 오브젝트 ID: " << DropItem.itemID << endl;
+
+                // 예: 인벤토리에 아이템 추가
+                for (auto& slot : player.inven.iteminfo)
+                {
+                    if (slot == DropItem.itemID)
+                    {
+                        slot = 0;
+                        cout << "아이템 제거 완료" << endl;
+                        return true;
+                        break;
+                    }
+                }
+
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+}
+bool InventoryItemUse(ItemUseEvent& UseItem)
+{
+	const char* playerId = UseItem.playerId;
+	bool found = false;
+	for (auto& [roomId, players] : GameStartUsers)
+	{
+		for (auto& player : players)
+		{
+			if (strcmp(player.user->m_userId, playerId) == 0)
+			{
+				// 여기에 원하는 처리 수행
+				cout << "플레이어가 속한 방 ID: " << roomId << endl;
+				cout << "아이템 ID: " << UseItem.itemID << ", 슬롯 인덱스: " << UseItem.slotIndex << endl;
+				// 예: 인벤토리에 아이템 추가
+				for (auto& slot : player.inven.iteminfo)
+				{
+					if (slot == UseItem.itemID)
+					{
+						slot = 0;
+						cout << "아이템 사용 완료" << endl;
+						return true;
+						break;
+					}
+				}
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
+}
+bool InventoryItemEquip(ItemEquipEvent& eqItem)
+{
+	const char* playerId = eqItem.playerId;
+	bool found = false;
+	for (auto& [roomId, players] : GameStartUsers)
+	{
+		for (auto& player : players)
+		{
+			if (strcmp(player.user->m_userId, playerId) == 0)
+			{
+				// 여기에 원하는 처리 수행
+				cout << "플레이어가 속한 방 ID: " << roomId << endl;
+				cout << "아이템 ID: " << eqItem.itemID << ", 슬롯 인덱스: " << eqItem.slotIndex << endl;
+				// 예: 인벤토리에 아이템 추가
+				player.EquipItem = eqItem.itemID;
+                return true;
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
 }

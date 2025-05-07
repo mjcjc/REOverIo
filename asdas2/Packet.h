@@ -46,26 +46,26 @@ enum class  PacketStatus : UINT16
 enum ItemID : UINT16 // 메인미션 및 아이템을 구분 짓는 ID ==> 플레이어 인벤토리에 들어갈 수 있는 아이템 종류들
 {
     //식물 테마 메인 미션 아이템
-    MAIN_PLANT_SEED,    //씨앗
-    MAIN_PLANT, //다 자란 식물 가공전 단계
-    MAIN_PLANT_COAL, // 석탄
-    MAIN_PLANT_EXTINGUISHER,// 소화기
+    MAIN_PLANT_SEED = 10,    //씨앗
+    MAIN_PLANT = 11, //다 자란 식물 가공전 단계
+    MAIN_PLANT_COAL = 12, // 석탄
+    MAIN_PLANT_EXTINGUISHER = 13,// 소화기
 
     //가루형 테마 메인 미션 아이템
-    MAIN_POWDER_RAW,    //원재료
-    MAIN_POWDER_REFINED,    // 정제된 
-    MAIN_POWDER_PROCESSED,  //가공된
+    MAIN_POWDER_RAW = 20,    //원재료
+    MAIN_POWDER_REFINED = 21,    // 정제된 
+    MAIN_POWDER_PROCESSED = 22,  //가공된
 
     // 공용으로 사용하는 미션 아이템
-    MAIN_BOX,   // 가공 완료된 목표 아이템
-    MAIN_TOOLKIT, // 공구 박스
-    MAIN_LANTEN, //랜턴
+    MAIN_BOX = 30,   // 가공 완료된 목표 아이템
+    MAIN_TOOLKIT = 31, // 공구 박스
+    MAIN_LANTEN = 32, //랜턴
 
     //자판기에서 판매하는 아이템
-    ITEM_STIMULANT, //각성제
-    ITEM_GUN,   //총
-    ITEM_ACCELERATOR,   //촉진제
-    ITEM_BRAINWASH, //세뇌약
+    ITEM_STIMULANT = 50, //각성제
+    ITEM_GUN = 51,   //총
+    ITEM_ACCELERATOR = 52,   //촉진제
+    ITEM_BRAINWASH = 53, //세뇌약
 };
 
 enum MapModInfo : UINT16 //맵 모드 정보
@@ -82,6 +82,8 @@ enum IsActive : UINT16 // BOOL 값을 못 넘기니까 우선 enum으로 바꾼거.
 enum class PlayerPacketStatus : UINT16
 {
     NONE = 1000,
+
+    ITEM_START = 1100,
 
     // ===== PLAYER 상태 =====
     PLAYER_STATUS_NOTIFY = 1001,
@@ -226,6 +228,9 @@ struct PlayerStatus
     UINT16 packetID;
     char playerId[32]; // 플레이어 ID
 
+    UINT16 itemID;
+	UINT16 slotIndex;
+
     float positionX; // 플레이어 위치
     float positionY;
     float positionZ;
@@ -252,10 +257,10 @@ struct ItemPickupEvent
 {
     UINT16 packetID; // 패킷 ID
 
-
     char playerId[32]; // 플레이어 ID
 
     UINT16 itemID;   // 먹은 아이템 ID
+    UINT16 WorldObjectID;
     ADD_SERIALIZE_FUNCS(ItemPickupEvent)
 };
 
@@ -295,6 +300,29 @@ struct ItemEquipEvent
     UINT16 isEquipped; // 0: 아이템을 들고 있지 않음, 1: 아이템을 들고 있음 (장착 여부)
     UINT16 slotIndex;  // 장착된 아이템이 위치한 인벤토리 슬롯 인덱스 (슬롯 0~3)
     ADD_SERIALIZE_FUNCS(ItemEquipEvent)
+};
+
+//고유식별값 주는 패킷
+struct WorldObjectSpawnPacket 
+{
+	UINT16 packetID; // 패킷 ID
+	
+    UINT16 itemID;   // 생성된 오브젝트 ID
+	UINT16 WorldObjectID;
+	
+    float posX; // 생성된 오브젝트 위치
+	float posY;
+	float posZ;
+	
+    float rotX; // 생성된 오브젝트 위치
+    float rotY;
+    float rotZ;
+
+    float velocityX; // 생성된 오브젝트 위치
+    float velocityY;
+    float velocityZ;
+
+    ADD_SERIALIZE_FUNCS(WorldObjectSpawnPacket)
 };
 #pragma pack(pop)
 

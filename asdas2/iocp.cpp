@@ -5,7 +5,7 @@
 #include"stSendContext.h"
 #include"OverlappedExPool.h"
 #include"GamePlayingPacket.h"
-
+#include"Item.h"
 #pragma comment(lib, "ws2_32.lib")
 
 #define SERVERPORT 43535
@@ -219,7 +219,6 @@ void RoomReadySend(PlayerReadySend const& room, SOCKET client_sock)
 }
 void RoomListSend()
 {
-    cout << "보냄" << endl;
     for (auto& [sock, user] : Userkey) {
         if (user->userState == User::USER_STATE_LOBBY) {
             for (const auto& [roomId, room] : Rooms) {
@@ -264,6 +263,71 @@ void InGameStart(RoomStart& play, SOCKET client_sock)
 		std::vector<char> serializedData = play.serialize();
 		SendPacket(serializedData, client_sock);
     }
+}
+void InitGameObject(WorldObjectSpawnPacket& ClObj)
+{
+    ItemSpawnManager(ClObj);
+}
+void InventoryAddPacket(ItemPickupEvent& PickItem, SOCKET client_sock)
+{
+	ItemPickupEvent response;
+    if (InventoryItemAdd(PickItem))
+    {
+	    response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_SUCCESS);
+    }
+    else {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_FAILED);
+    }
+	strcpy(response.playerId, PickItem.playerId);
+	response.itemID = PickItem.itemID;
+	std::vector<char> serializedData = response.serialize();
+	SendPacket(serializedData, client_sock);
+}
+void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
+{
+	ItemDropEvent response;
+    if (InventoryItemRemove(RemoveItem))
+    {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+    }
+    else {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
+    }
+	strcpy(response.playerId, RemoveItem.playerId);
+	response.itemID = RemoveItem.itemID;
+	std::vector<char> serializedData = response.serialize();
+	SendPacket(serializedData, client_sock);
+}
+void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
+{
+	ItemUseEvent response;
+    if (InventoryItemUse(UseItem))
+    {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_USE_SUCCESS);
+    }
+    else {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_USE_FAILED);
+    }
+	strcpy(response.playerId, UseItem.playerId);
+	response.itemID = UseItem.itemID;
+	std::vector<char> serializedData = response.serialize();
+	SendPacket(serializedData, client_sock);
+}
+void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
+{
+	ItemEquipEvent response;
+    if (InventoryItemEquip(eqItem))
+    {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_SUCCESS);
+    }
+    else {
+		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
+    }
+	strcpy(response.playerId, eqItem.playerId);
+	response.itemID = eqItem.itemID;
+	std::vector<char> serializedData = response.serialize();
+	SendPacket(serializedData, client_sock);
+
 }
 void MoveBroadCast(PlayerStatus& player)
 {
@@ -322,8 +386,6 @@ void MoveBroadCast(PlayerStatus& player)
         }
     }
 }
-
-
 bool IsLobbyPacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PacketStatus::LOGIN_REQUEST) &&
@@ -332,7 +394,7 @@ bool IsLobbyPacket(UINT16 packetId)
 bool IsGamePacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY) &&
-        packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
+        packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_START);
 }
 void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
@@ -429,7 +491,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         break;
     case PacketStatus::USER_STATUS_LOBY:
     {
-        cout << "여기 왜 안들어오지" << endl;
         if (length < sizeof(PlayerinfoStatus))
         {
             cerr << "Invalid RoomInfo packet size" << endl;
@@ -455,7 +516,6 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
         break;
     }
 
-
     default:
         cerr << "Unknown packet ID: " << PacketId << endl;
         break;
@@ -467,7 +527,20 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
 	cout << "받은 패킷 데이터:" << PacketId << endl;
     switch (ingamestatus)
     {
+    case PlayerPacketStatus::ITEM_START:
+	{
+		if (length < sizeof(WorldObjectSpawnPacket))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        WorldObjectSpawnPacket packet = WorldObjectSpawnPacket::deserialize(
+			std::vector<char>(data, data + sizeof(WorldObjectSpawnPacket))
+		);
+		InitGameObject(packet);
+		break;
+	}
     case PlayerPacketStatus::PLAYER_STATUS_NOTIFY:
+    {
         if (length < sizeof(PlayerStatus))
         {
             cerr << "Invalid RoomInfo packet size" << endl;
@@ -477,6 +550,58 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
         );
         MoveBroadCast(packet);
         break;
+    }
+    case PlayerPacketStatus::ITEM_PICKUP_REQUEST:
+    {
+		if (length < sizeof(ItemPickupEvent))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        ItemPickupEvent packet = ItemPickupEvent::deserialize(
+			std::vector<char>(data, data + sizeof(ItemPickupEvent))
+		);
+        InventoryAddPacket(packet, client_sock);
+		break;
+
+    }
+    case PlayerPacketStatus::ITEM_USE_REQUEST:
+    {
+		if (length < sizeof(ItemUseEvent))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        ItemUseEvent packet = ItemUseEvent::deserialize(
+			std::vector<char>(data, data + sizeof(ItemUseEvent))
+		);
+        InventoryUsePacket(packet, client_sock);
+		break;
+
+    }
+    case PlayerPacketStatus::ITEM_DROP_REQUEST:
+    {
+		if (length < sizeof(ItemDropEvent))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        ItemDropEvent packet = ItemDropEvent::deserialize(
+			std::vector<char>(data, data + sizeof(ItemDropEvent))
+		);
+        InventoryRemovePacket(packet, client_sock);
+		break;
+
+    }
+    case PlayerPacketStatus::ITEM_EQUIP_REQUEST:
+    {
+		if (length < sizeof(ItemEquipEvent))
+		{
+			cerr << "Invalid RoomInfo packet size" << endl;
+		}
+        ItemEquipEvent packet = ItemEquipEvent::deserialize(
+			std::vector<char>(data, data + sizeof(ItemEquipEvent))
+		);
+        InventoryEquipPacket(packet, client_sock);
+		break;
+    }
 
     }
 }

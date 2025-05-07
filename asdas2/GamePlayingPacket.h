@@ -7,6 +7,9 @@
 
 struct Inventory {
     array<UINT16, 4> iteminfo;
+    Inventory() {
+        iteminfo.fill(0);
+    }
 };
 
 struct GamePlayer {
@@ -15,8 +18,14 @@ struct GamePlayer {
     float x,y,z;
 	float rotationX, rotationY, rotationZ;
     Inventory inven;
+	UINT16 EquipItem;
 };
 
 inline unordered_map<UINT16, vector<GamePlayer>> GameStartUsers;
-void MovePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info);
+
+void InitPlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info);
 void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerStatus& SomePlayer);
+bool InventoryItemAdd(ItemPickupEvent& PickItem);
+bool InventoryItemRemove(ItemDropEvent& DropItem);
+bool InventoryItemUse(ItemUseEvent& UseItem);
+bool InventoryItemEquip(ItemEquipEvent& eqItem);

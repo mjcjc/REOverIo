@@ -149,7 +149,7 @@ bool GameStart(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& 
     }
 	if (count == Rooms[info.roomID]->userCount)
 	{
-        MovePlayer(Rooms, info);
+        InitPlayer(Rooms, info);
         return true;
     }
     else {
