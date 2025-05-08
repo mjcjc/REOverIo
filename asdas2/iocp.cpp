@@ -350,7 +350,7 @@ void MoveBroadCast(PlayerStatus& player)
     }
 
     if (!foundRoom) return;
-    uint32_t roomId = foundRoom->roomId;
+    uint32_t roomId = foundRoom->roomId;    
 
     auto it = GameStartUsers.find(roomId);
     if (it == GameStartUsers.end()) return;
@@ -394,7 +394,7 @@ bool IsLobbyPacket(UINT16 packetId)
 bool IsGamePacket(UINT16 packetId)
 {
     return packetId >= static_cast<UINT16>(PlayerPacketStatus::PLAYER_STATUS_NOTIFY) &&
-        packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_START);
+        packetId <= static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
 }
 void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
@@ -527,7 +527,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
 	cout << "받은 패킷 데이터:" << PacketId << endl;
     switch (ingamestatus)
     {
-    case PlayerPacketStatus::ITEM_START:
+   /* case PlayerPacketStatus::ITEM_START:
 	{
 		if (length < sizeof(WorldObjectSpawnPacket))
 		{
@@ -538,7 +538,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
 		);
 		InitGameObject(packet);
 		break;
-	}
+	}*/
     case PlayerPacketStatus::PLAYER_STATUS_NOTIFY:
     {
         if (length < sizeof(PlayerStatus))

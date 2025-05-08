@@ -46,26 +46,26 @@ enum class  PacketStatus : UINT16
 enum ItemID : UINT16 // 메인미션 및 아이템을 구분 짓는 ID ==> 플레이어 인벤토리에 들어갈 수 있는 아이템 종류들
 {
     //식물 테마 메인 미션 아이템
-    MAIN_PLANT_SEED = 10,    //씨앗
-    MAIN_PLANT = 11, //다 자란 식물 가공전 단계
-    MAIN_PLANT_COAL = 12, // 석탄
-    MAIN_PLANT_EXTINGUISHER = 13,// 소화기
+    MAIN_PLANT_SEED ,    //씨앗
+    MAIN_PLANT , //다 자란 식물 가공전 단계
+    MAIN_PLANT_COAL , // 석탄
+    MAIN_PLANT_EXTINGUISHER ,// 소화기
 
     //가루형 테마 메인 미션 아이템
-    MAIN_POWDER_RAW = 20,    //원재료
-    MAIN_POWDER_REFINED = 21,    // 정제된 
-    MAIN_POWDER_PROCESSED = 22,  //가공된
+    MAIN_POWDER_RAW ,    //원재료
+    MAIN_POWDER_REFINED ,    // 정제된 
+    MAIN_POWDER_PROCESSED ,  //가공된
 
     // 공용으로 사용하는 미션 아이템
-    MAIN_BOX = 30,   // 가공 완료된 목표 아이템
-    MAIN_TOOLKIT = 31, // 공구 박스
-    MAIN_LANTEN = 32, //랜턴
+    MAIN_BOX,   // 가공 완료된 목표 아이템
+    MAIN_TOOLKIT , // 공구 박스
+    MAIN_LANTEN , //랜턴
 
     //자판기에서 판매하는 아이템
-    ITEM_STIMULANT = 50, //각성제
-    ITEM_GUN = 51,   //총
-    ITEM_ACCELERATOR = 52,   //촉진제
-    ITEM_BRAINWASH = 53, //세뇌약
+    ITEM_STIMULANT, //각성제
+    ITEM_GUN ,   //총
+    ITEM_ACCELERATOR ,   //촉진제
+    ITEM_BRAINWASH, //세뇌약
 };
 
 enum MapModInfo : UINT16 //맵 모드 정보
@@ -83,7 +83,7 @@ enum class PlayerPacketStatus : UINT16
 {
     NONE = 1000,
 
-    ITEM_START = 1100,
+    //ITEM_START = 1100,
 
     // ===== PLAYER 상태 =====
     PLAYER_STATUS_NOTIFY = 1001,
@@ -226,10 +226,8 @@ struct RoomStart //방을 시작하고 어떤 유저가 요청을 보냈는지 그리고 어느 roomID�
 struct PlayerStatus
 {
     UINT16 packetID;
-    char playerId[32]; // 플레이어 ID
 
-    UINT16 itemID;
-	UINT16 slotIndex;
+    char playerId[32]; // 플레이어 ID
 
     float positionX; // 플레이어 위치
     float positionY;
@@ -242,13 +240,17 @@ struct PlayerStatus
     float viewDirectionX; // 플레이어의 시선 방향 (카메라의 회전값)
     float viewDirectionY;
     float viewDirectionZ;
-
-    UINT16 movementState;    // ex: 0=Idle, 1=Walk, 2=Run
-    UINT16 aimState;         // 0: 일반 / 1: 조준 중
-    UINT16 actionState;      // ex: 0=None, 1=Reloading, 2=Attacking
-    float speed;             // 애니메이션 동작할때 속도제어를 하게 될경우 필요한 정보
-    float directionX;        // 움직일때 애니메이션 제어에 필요한 방향 정보
-    float directionY;
+    /*
+     * 0 = Idle, 1 = walk
+     * 0 = none, 1 = One, 2 = Hold , 3 = mouseOne, 4 = mouseHold
+     * 0 = none, 1 = OneHand, 2 = TwoHand, 3 = aim
+     */
+    UINT16 movementState;    //  움직임 제어
+    UINT16 actionTriggerState;  // 아이템 트리거 동작 제어
+    UINT16 actionState;      //  상체 움직임 상태 제어
+     float speed;             // 걷는 동작과 연계 할 값
+     float directionX;        // 움직일때 애니메이션 제어에 필요한 방향 정보
+     float directionY;
     ADD_SERIALIZE_FUNCS(PlayerStatus)
 };
 
