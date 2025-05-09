@@ -140,10 +140,14 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     auto roomInfo = Rooms[room.roomId];
     auto joiningUser = LoginUser[room.userName];
 
-    // 1. B에게 기존 유저들의 정보를 RoomInResponse로 전송
+    roomInfo->userinfo.emplace_back(joiningUser);
+    roomInfo->userCount++;
+    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
+  
+    // 1. B에게 기존 유저들 정보 전송
     for (const auto& user : roomInfo->userinfo)
     {
-        if (user.get() == joiningUser.get()) continue; // 자기 자신 제외
+        if (strcmp(user->m_userId, joiningUser->m_userId) == 0) continue;
 
         PlayerInfoGet info;
         info.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
@@ -153,8 +157,6 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
         SendPacket(info.serialize(), client_sock);
         std::cout << "기존 유저 전송 (PlayerInfoGet): " << info.userName << std::endl;
     }
-
-    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
     response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_IN_SUCCESS);
     response.roomId = room.roomId;
     strcpy_s(response.roomName, roomInfo->roomName);
@@ -163,16 +165,16 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     SendPacket(response.serialize(), client_sock); // B에게 자기 정보
     std::cout << "본인 정보 전송: " << response.userName << std::endl;
 
-    // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
+    // 3. 기존 유저들에게 B 정보 전송
     PlayerInfoGet newUserNotify;
-    newUserNotify.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS); // 혹은 PLAYER_JOIN_NOTIFY
+    newUserNotify.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
     newUserNotify.readyStatus = joiningUser->ready;
     strcpy_s(newUserNotify.userName, room.userName);
 
     std::vector<char> notifyPacket = newUserNotify.serialize();
     for (const auto& user : roomInfo->userinfo)
     {
-        if (user.get() == joiningUser.get()) continue; // B 제외
+        if (strcmp(user->m_userId, joiningUser->m_userId) == 0) continue;
         SendPacket(notifyPacket, user->sock);
         std::cout << "신규 유저 정보 전송 대상: " << user->m_userId << std::endl;
     }
