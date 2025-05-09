@@ -48,7 +48,8 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, shared_ptr<RoomInf
         return false;
     }
     user->userState = User::USER_STATE_ROOM;
-    
+    Inroom->userCount++;
+    Inroom->userinfo.emplace_back(user);
     cout << " 들어가 졌어용" << endl;
     return true;
 

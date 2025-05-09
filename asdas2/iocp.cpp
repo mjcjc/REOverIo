@@ -92,9 +92,13 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
 
     DWORD sendBytes;
     int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
+    
     if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSASend 실패: " << WSAGetLastError() << std::endl;
         delete[] overlp->wsabuf.buf;
+    }
+    else {
+        cout << "전송"<<endl;
     }
 }
 void sendLogin(const LoginRequest& request, SOCKET client_sock) {
@@ -140,24 +144,22 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     auto roomInfo = Rooms[room.roomId];
     auto joiningUser = LoginUser[room.userName];
 
-    roomInfo->userinfo.emplace_back(joiningUser);
-    roomInfo->userCount++;
-    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
-  
-    // 1. B에게 기존 유저들 정보 전송
+    // 1. B에게 기존 유저들의 정보를 RoomInResponse로 전송
     for (const auto& user : roomInfo->userinfo)
     {
-        if (strcmp(user->m_userId, joiningUser->m_userId) == 0) continue;
+        if (user.get() == joiningUser.get()) continue; // 자기 자신 제외
 
         PlayerInfoGet info;
-        info.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
+        info.packetId = PLAYER_READY_TOGGLE_SUCCESS;
         info.readyStatus = user->ready;
         strcpy_s(info.userName, user->m_userId);
 
         SendPacket(info.serialize(), client_sock);
         std::cout << "기존 유저 전송 (PlayerInfoGet): " << info.userName << std::endl;
     }
-    response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_IN_SUCCESS);
+
+    // 2. B 자신에게 RoomInResponse로 본인 정보 전송
+    response.PacketId = ROOM_IN_SUCCESS;
     response.roomId = room.roomId;
     strcpy_s(response.roomName, roomInfo->roomName);
     strcpy_s(response.userName, room.userName);
@@ -165,16 +167,16 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     SendPacket(response.serialize(), client_sock); // B에게 자기 정보
     std::cout << "본인 정보 전송: " << response.userName << std::endl;
 
-    // 3. 기존 유저들에게 B 정보 전송
+    // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
     PlayerInfoGet newUserNotify;
-    newUserNotify.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
+    newUserNotify.packetId = PLAYER_READY_TOGGLE_SUCCESS; // 혹은 PLAYER_JOIN_NOTIFY
     newUserNotify.readyStatus = joiningUser->ready;
     strcpy_s(newUserNotify.userName, room.userName);
 
     std::vector<char> notifyPacket = newUserNotify.serialize();
     for (const auto& user : roomInfo->userinfo)
     {
-        if (strcmp(user->m_userId, joiningUser->m_userId) == 0) continue;
+        if (user.get() == joiningUser.get()) continue; // B 제외
         SendPacket(notifyPacket, user->sock);
         std::cout << "신규 유저 정보 전송 대상: " << user->m_userId << std::endl;
     }
@@ -182,6 +184,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     // 4. 로비 유저에게 방 목록 갱신
     RoomListSend();
 }
+
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
     cout << "들어는감." << endl;

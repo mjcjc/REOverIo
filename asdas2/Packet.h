@@ -1,9 +1,8 @@
 #pragma once
 #include "deFine.h"
 #pragma pack(push, 1)
-enum class  PacketStatus : UINT16
+enum  PacketStatus : UINT16
 {
-    NONE,
 
     LOGIN_REQUEST = 100,
     LOGIN_SUCCESS = 101,
@@ -79,7 +78,7 @@ enum IsActive : UINT16 // BOOL 값을 못 넘기니까 우선 enum으로 바꾼거.
     True,
     False,
 };
-enum class PlayerPacketStatus : UINT16
+enum  PlayerPacketStatus : UINT16
 {
     NONE = 1000,
 
