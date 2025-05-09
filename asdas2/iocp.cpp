@@ -80,15 +80,23 @@ void PostAccept(HANDLE hIOCP) {
     }
 }
 void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
-    auto overlp = GetOverlappedPool().Allocate();
+    uint16_t totalLength = static_cast<uint16_t>(data.size() + sizeof(uint16_t));
 
+    std::vector<char> packetWithLength;
+    packetWithLength.resize(sizeof(uint16_t) + data.size());
+
+    // 앞 2바이트에 길이 삽입 (Little Endian)
+    memcpy(packetWithLength.data(), &totalLength, sizeof(uint16_t));
+    memcpy(packetWithLength.data() + sizeof(uint16_t), data.data(), data.size());
+
+    auto overlp = GetOverlappedPool().Allocate();
     memset(&overlp->overlp, 0, sizeof(overlp->overlp));
     overlp->sock = client_sock;
     overlp->state = OverlState::SEND;
 
-    overlp->wsabuf.buf = new char[data.size()];
-    memcpy(overlp->wsabuf.buf, data.data(), data.size());
-    overlp->wsabuf.len = static_cast<ULONG>(data.size());
+    overlp->wsabuf.buf = new char[packetWithLength.size()];
+    memcpy(overlp->wsabuf.buf, packetWithLength.data(), packetWithLength.size());
+    overlp->wsabuf.len = static_cast<ULONG>(packetWithLength.size());
 
     DWORD sendBytes;
     int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
