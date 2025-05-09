@@ -605,26 +605,35 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
 
     }
 }
-void ProcessPacket(char const* data, size_t length, SOCKET client_sock)
+void ProcessPacket(char* data, size_t length, SOCKET client_sock)
 {
-    if (length < sizeof(UINT16)) {
-        cerr << "Inval  id packet size" << endl;
+    if (length < sizeof(UINT16) * 2) {
+        cerr << "[ERROR] 잘못된 패킷 수신 - 길이 부족 (" << length << "바이트)" << endl;
         return;
     }
 
-    UINT16 PacketId;
-    std::memcpy(&PacketId, data, sizeof(UINT16));
+    // 첫 2바이트는 전체 길이로 가정하고 무시 (이미 패킷 조립에서 사용됨)
+    UINT16 PacketId = 0;
+    std::memcpy(&PacketId, data + sizeof(UINT16), sizeof(UINT16)); // offset 2~3
+
+    cout << "[DEBUG] 받은 PacketId: " << PacketId << endl;
+
+    // payload: PacketId 이후의 나머지 데이터
+    char* payload = data + sizeof(UINT16); // 이 포인터부터 PacketId + 구조체 전체
+    size_t payloadLength = length - sizeof(UINT16); // 전체에서 길이 필드 2바이트 뺌
+
     if (IsLobbyPacket(PacketId))
     {
-  
-        ProcessLobbyPacket(PacketId, length, client_sock, data);
+        ProcessLobbyPacket(PacketId, payloadLength, client_sock, payload);
     }
     else if (IsGamePacket(PacketId))
     {
-       
-        ProcessInGamePacket(PacketId, length, client_sock, data);
+        ProcessInGamePacket(PacketId, payloadLength, client_sock, payload);
     }
-
+    else
+    {
+        cerr << "[ERROR] 알 수 없는 PacketId: " << PacketId << endl;
+    }
 }
 
 int main() {
@@ -692,6 +701,8 @@ int main() {
             }
         }
         else if (overEx->state == OverlState::RECV) {
+            cout << "[DEBUG] RECV 상태 진입, 수신된 바이트 수: " << bytesTransferred << endl;
+
             if (bytesTransferred == 0) {
                 cout << "클라이언트 연결 종료\n";
                 closesocket(clientsoc);
@@ -707,6 +718,13 @@ int main() {
             }
             auto& user = userIt->second;
 
+            cout << "[DEBUG] 수신된 첫 바이트: " << (unsigned int)(uint8_t)overEx->buf[0] << endl;
+            cout << "[DEBUG] 두 번째 바이트: " << (unsigned int)(uint8_t)overEx->buf[1] << endl;
+            cout << "[DEBUG] 전체 수신 바이트 HEX: ";
+            for (int i = 0; i < bytesTransferred; ++i) {
+                printf("%02X ", (unsigned char)overEx->buf[i]);
+            }
+            printf("\n");
 
             user->recvBuffer.insert(
                 user->recvBuffer.end(),
