@@ -27,7 +27,7 @@ public:
 	SOCKET sock;
 	bool Login = false;
 
-	
+	std::vector<char> recvBuffer;  // 누적 버퍼
 private:
 
 

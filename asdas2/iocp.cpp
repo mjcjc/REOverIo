@@ -92,13 +92,9 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
 
     DWORD sendBytes;
     int retval = WSASend(client_sock, &overlp->wsabuf, 1, &sendBytes, 0, &overlp->overlp, NULL);
-    
     if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSASend 실패: " << WSAGetLastError() << std::endl;
         delete[] overlp->wsabuf.buf;
-    }
-    else {
-        cout << "전송"<<endl;
     }
 }
 void sendLogin(const LoginRequest& request, SOCKET client_sock) {
@@ -150,7 +146,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
         if (user.get() == joiningUser.get()) continue; // 자기 자신 제외
 
         PlayerInfoGet info;
-        info.packetId = PLAYER_READY_TOGGLE_SUCCESS;
+        info.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS);
         info.readyStatus = user->ready;
         strcpy_s(info.userName, user->m_userId);
 
@@ -159,7 +155,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     }
 
     // 2. B 자신에게 RoomInResponse로 본인 정보 전송
-    response.PacketId = ROOM_IN_SUCCESS;
+    response.PacketId = static_cast<UINT16>(PacketStatus::ROOM_IN_SUCCESS);
     response.roomId = room.roomId;
     strcpy_s(response.roomName, roomInfo->roomName);
     strcpy_s(response.userName, room.userName);
@@ -169,7 +165,7 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
 
     // 3. 기존 유저(A)들에게 PlayerInfoGet으로 B 정보 전송
     PlayerInfoGet newUserNotify;
-    newUserNotify.packetId = PLAYER_READY_TOGGLE_SUCCESS; // 혹은 PLAYER_JOIN_NOTIFY
+    newUserNotify.packetId = static_cast<UINT16>(PacketStatus::PLAYER_READY_TOGGLE_SUCCESS); // 혹은 PLAYER_JOIN_NOTIFY
     newUserNotify.readyStatus = joiningUser->ready;
     strcpy_s(newUserNotify.userName, room.userName);
 
@@ -184,7 +180,6 @@ void RoomInSideSendPacket(RoomRequest const& room, SOCKET client_sock)
     // 4. 로비 유저에게 방 목록 갱신
     RoomListSend();
 }
-
 void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
 {
     cout << "들어는감." << endl;
@@ -682,6 +677,8 @@ int main() {
             recvOverEx->sock = clientsoc;
             recvOverEx->state = OverlState::RECV;
 
+            cout << "첫 WSARecv 등록됨 (소켓: " << clientsoc << ")" << endl;
+
             DWORD flags = 0, recvBytes = 0;
             int retval = WSARecv(clientsoc, &recvOverEx->wsabuf, 1, &recvBytes, &flags, &recvOverEx->overlp, NULL);
             if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
@@ -689,6 +686,9 @@ int main() {
                 closesocket(clientsoc);
                 Userkey.erase(clientsoc);
                 delete recvOverEx;
+            }
+            else {
+                cout << "[DEBUG] WSARecv 등록 완료" << endl;  // 여기 추가
             }
         }
         else if (overEx->state == OverlState::RECV) {
@@ -699,15 +699,37 @@ int main() {
                 delete overEx;
                 continue;
             }
-        else if (overEx->state == OverlState::SEND) {
-            delete[] overEx->wsabuf.buf;
-            // shared_ptr 자동 소멸로 풀에 반납됨
-        }
 
-            // 패킷 처리
-            ProcessPacket(overEx->buf, bytesTransferred, clientsoc);
+            auto userIt = Userkey.find(clientsoc);
+            if (userIt == Userkey.end()) {
+                delete overEx;
+                continue;
+            }
+            auto& user = userIt->second;
 
-            // 다시 WSARecv 등록 (비동기 처리 유지)
+
+            user->recvBuffer.insert(
+                user->recvBuffer.end(),
+                overEx->buf,
+                overEx->buf + bytesTransferred
+            );
+
+            while (true) {
+                if (user->recvBuffer.size() < sizeof(uint16_t))
+                    break;
+
+                uint16_t packetSize;
+                memcpy(&packetSize, user->recvBuffer.data(), sizeof(uint16_t));
+
+                if (user->recvBuffer.size() < packetSize)
+                    break;
+
+                std::vector<char> fullPacket(user->recvBuffer.begin(), user->recvBuffer.begin() + packetSize);
+                ProcessPacket(fullPacket.data(), packetSize, clientsoc);
+
+                user->recvBuffer.erase(user->recvBuffer.begin(), user->recvBuffer.begin() + packetSize);
+            }
+
             memset(&overEx->overlp, 0, sizeof(overEx->overlp));
             DWORD flags = 0, recvBytes = 0;
             int ret = WSARecv(clientsoc, &overEx->wsabuf, 1, &recvBytes, &flags, &overEx->overlp, NULL);
