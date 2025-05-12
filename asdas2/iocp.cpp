@@ -49,14 +49,12 @@ bool SockInit(SOCKET& listenSock) {
 
     return true;
 }
-// AcceptEx 함수 포인터 가져오기
 bool LoadAcceptEx() {
     GUID GuidAcceptEx = WSAID_ACCEPTEX;
     DWORD dwBytes;
     return (WSAIoctl(ListenSock, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidAcceptEx, sizeof(GuidAcceptEx),
         &AcceptExFunc, sizeof(AcceptExFunc), &dwBytes, NULL, NULL) == 0);
 }
-// 새로운 AcceptEx 요청 등록
 void PostAccept(HANDLE hIOCP) {
     SOCKET client = socket(AF_INET, SOCK_STREAM, 0); // 새 클라이언트 소켓 생성
     if (client == INVALID_SOCKET) {
@@ -317,7 +315,7 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
 					strcpy(response.playerId, player.user->m_userId);
 					response.itemID = player.inven.iteminfo[RemoveItem.slotIndex];
 					response.slotIndex = RemoveItem.slotIndex;
-                    spawnPacket.posX = RemoveItem.posX;
+                    response.posX = RemoveItem.posX;
 					response.posY = RemoveItem.posY;
 					response.posZ = RemoveItem.posZ;
 					response.rotX = RemoveItem.rotX;
@@ -375,37 +373,38 @@ void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
 }
 void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
 {
-	ItemEquipEvent response;
+    ItemEquipEvent response;
     if (InventoryItemEquip(eqItem))
     {
-		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_SUCCESS);
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_SUCCESS);
     }
     else {
-		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
     }
+
     for (auto& [roomId, players] : GameStartUsers)
     {
         for (GamePlayer& player : players)
         {
             if (strcmp(player.user->m_userId, eqItem.playerId) == 0)
             {
+            
                 if (eqItem.slotIndex < player.inven.iteminfo.size())
                 {
+                    response.slotIndex = eqItem.slotIndex;
+                    response.itemID = player.inven.iteminfo[eqItem.slotIndex];
                     response.isEquipped = player.playerEquiptHand;
-                    response.itemID = player.EquipItemID;
-                    response.slotIndex = eqItem.slotIndex; 
                 }
                 break;
-
             }
         }
     }
-	strcpy(response.playerId, eqItem.playerId);
-	std::vector<char> serializedData = response.serialize();
-	SendPacket(serializedData, client_sock);
 
-	
+    strcpy(response.playerId, eqItem.playerId);
+    std::vector<char> serializedData = response.serialize();
+    SendPacket(serializedData, client_sock);
 }
+
 void MoveBroadCast(PlayerStatus& player)
 {
     InGamePlayer(Rooms, player); // 위치 갱신

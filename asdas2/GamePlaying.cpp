@@ -205,7 +205,7 @@ bool InventoryItemEquip(ItemEquipEvent& eqItem)
 
                 player.EquipItemID = eqItem.itemID;
                 player.playerEquiptHand = eqItem.isEquipped;
-
+                player.inven.iteminfo[eqItem.slotIndex] = eqItem.itemID;
                 return true;
             }
         }
