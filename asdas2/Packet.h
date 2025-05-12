@@ -83,8 +83,6 @@ enum class PlayerPacketStatus : UINT16
 {
     NONE = 1000,
 
-    //ITEM_START = 1100,
-
     // ===== PLAYER 상태 =====
     PLAYER_STATUS_NOTIFY = 1001,
 
@@ -281,13 +279,23 @@ struct ItemUseEvent
 // 아이템 버리기 이벤트 구조체
 struct ItemDropEvent
 {
-    UINT16 packetID; // 패킷 ID
+    UINT16 packetID;
+    char playerId[32];
 
+    UINT16 itemID;
+    UINT16 slotIndex;
 
-    char playerId[32]; // 플레이어 ID
+    float posX;  // 버려지는 위치
+    float posY;
+    float posZ;
 
-    UINT16 itemID;    // 버린 아이템 ID
-    UINT16 slotIndex; // 버린 아이템이 있는 슬롯 인덱스
+    float rotX;  // 버려지는 회전
+    float rotY;
+    float rotZ;
+
+    float velocityX;  // 던지는 속도
+    float velocityY;
+    float velocityZ;
     ADD_SERIALIZE_FUNCS(ItemDropEvent)
 };
 
@@ -307,22 +315,22 @@ struct ItemEquipEvent
 //고유식별값 주는 패킷
 struct WorldObjectSpawnPacket 
 {
-	UINT16 packetID; // 패킷 ID
-	
-    UINT16 itemID;   // 생성된 오브젝트 ID
-	UINT16 WorldObjectID;
-	
-    float posX; // 생성된 오브젝트 위치
-	float posY;
-	float posZ;
-	
-    float rotX; // 생성된 오브젝트 위치
-    float rotY;
-    float rotZ;
+    UINT16 packetID;        // 
+    char playerId[32]; // 플레이어 ID
+    UINT16 worldObjectID;   // 고유 오브젝트 ID
+    UINT16 itemID;          // 아이템 타입 
 
-    float velocityX; // 생성된 오브젝트 위치
-    float velocityY;
-    float velocityZ;
+     float posX;
+     float posY;
+     float posZ;
+
+     float rotX;
+     float rotY;
+     float rotZ;
+
+     float velocityX;
+     float velocityY;
+     float velocityZ;
 
     ADD_SERIALIZE_FUNCS(WorldObjectSpawnPacket)
 };

@@ -17,4 +17,5 @@ extern const unordered_map<UINT16, int> MaxItemCount;
 extern UINT16 nextWorldObjectId;
 
 UINT64 GenerateWorldObjectUUID();
-bool ItemSpawnManager(WorldObjectSpawnPacket& ClObj);
+
+int ItemSpawnManager(WorldObjectSpawnPacket& ClObj);

@@ -85,7 +85,6 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
     std::vector<char> packetWithLength;
     packetWithLength.resize(sizeof(uint16_t) + data.size());
 
-    // 앞 2바이트에 길이 삽입 (Little Endian)
     memcpy(packetWithLength.data(), &totalLength, sizeof(uint16_t));
     memcpy(packetWithLength.data() + sizeof(uint16_t), data.data(), data.size());
 
@@ -103,6 +102,9 @@ void SendPacket(const std::vector<char>& data, SOCKET client_sock) {
     if (retval == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSASend 실패: " << WSAGetLastError() << std::endl;
         delete[] overlp->wsabuf.buf;
+    }
+    else {
+		cout << "패킷 전송 성공" << endl;
     }
 }
 void sendLogin(const LoginRequest& request, SOCKET client_sock) {
@@ -249,9 +251,9 @@ void RoomOutSideSendPacket(RoomRequest& room, SOCKET client_sock)
     RoomOutSide(room, Rooms);
     room.PacketId = static_cast<UINT16>(PacketStatus::ROOM_LEAVE_SUCCESS);
     std::vector<char> serializedData = room.serialize();
+    RoomListSend();
     SendPacket(serializedData, client_sock);
 
-    RoomListSend();
 }
 void InGameStart(RoomStart& play, SOCKET client_sock)
 {
@@ -296,15 +298,63 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
 	ItemDropEvent response;
     if (InventoryItemRemove(RemoveItem))
     {
-		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
     }
     else {
-		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
     }
-	strcpy(response.playerId, RemoveItem.playerId);
-	response.itemID = RemoveItem.itemID;
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (GamePlayer& player : players)
+        {
+            if (strcmp(player.user->m_userId, RemoveItem.playerId) == 0)
+            {
+                if (RemoveItem.slotIndex < player.inven.iteminfo.size())
+                {
+					strcpy(response.playerId, player.user->m_userId);
+					response.itemID = player.inven.iteminfo[RemoveItem.slotIndex];
+					response.slotIndex = RemoveItem.slotIndex;
+					response.posX = RemoveItem.posX;
+					response.posY = RemoveItem.posY;
+					response.posZ = RemoveItem.posZ;
+					response.rotX = RemoveItem.rotX;
+					response.rotY = RemoveItem.rotY;
+					response.rotZ = RemoveItem.rotZ;
+					response.velocityX = RemoveItem.velocityX;
+					response.velocityY = RemoveItem.velocityY;
+					response.velocityZ = RemoveItem.velocityZ;
+                }
+                break;
+            }
+        }
+    }
 	std::vector<char> serializedData = response.serialize();
 	SendPacket(serializedData, client_sock);
+   
+    WorldObjectSpawnPacket spawnPacket;
+    spawnPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+    spawnPacket.itemID = response.itemID;
+
+    spawnPacket.worldObjectID = ItemSpawnManager(spawnPacket);
+    spawnPacket.posX = response.posX;
+    spawnPacket.posY = response.posY;
+    spawnPacket.posZ = response.posZ;
+    spawnPacket.rotX = response.rotX;
+    spawnPacket.rotY = response.rotY;
+    spawnPacket.rotZ = response.rotZ;
+    spawnPacket.velocityX = response.velocityX;
+    spawnPacket.velocityY = response.velocityY;
+    spawnPacket.velocityZ = response.velocityZ;
+
+    // 클라이언트들에게 전송
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (GamePlayer& player : players)
+        {
+            std::vector<char> serializedData = spawnPacket.serialize();
+            SendPacket(serializedData, player.sock);
+        }
+    }
 }
 void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
 {
@@ -331,11 +381,26 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
     else {
 		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_EQUIP_FAILED);
     }
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (GamePlayer& player : players)
+        {
+            if (strcmp(player.user->m_userId, eqItem.playerId) == 0)
+            {
+                if (eqItem.slotIndex < player.inven.iteminfo.size())
+                {
+                    response.isEquipped = player.playerEquiptHand;
+                    response.itemID = player.EquipItemID;
+                }
+                break;
+            }
+        }
+    }
 	strcpy(response.playerId, eqItem.playerId);
-	response.itemID = eqItem.itemID;
 	std::vector<char> serializedData = response.serialize();
 	SendPacket(serializedData, client_sock);
 
+	
 }
 void MoveBroadCast(PlayerStatus& player)
 {
@@ -407,7 +472,7 @@ bool IsGamePacket(UINT16 packetId)
 void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto lobbyplayerstatus = static_cast<PacketStatus>(PacketId);
-    cout << "받은 패킷 데이터:" << PacketId << endl;
+   // cout << "받은 패킷 데이터:" << PacketId << endl;
     switch (lobbyplayerstatus) {
     case PacketStatus::LOGIN_REQUEST: {
         if (length < sizeof(LoginRequest)) {
@@ -532,7 +597,8 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
 void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto ingamestatus = static_cast<PlayerPacketStatus>(PacketId);
-	cout << "받은 패킷 데이터:" << PacketId << endl;
+    
+
     switch (ingamestatus)
     {
    /* case PlayerPacketStatus::ITEM_START:
@@ -561,6 +627,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
     }
     case PlayerPacketStatus::ITEM_PICKUP_REQUEST:
     {
+        cout << "받은 패킷 데이터:" << PacketId << endl;
 		if (length < sizeof(ItemPickupEvent))
 		{
 			cerr << "Invalid RoomInfo packet size" << endl;
@@ -574,6 +641,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
     }
     case PlayerPacketStatus::ITEM_USE_REQUEST:
     {
+        cout << "받은 패킷 데이터:" << PacketId << endl;
 		if (length < sizeof(ItemUseEvent))
 		{
 			cerr << "Invalid RoomInfo packet size" << endl;
@@ -587,6 +655,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
     }
     case PlayerPacketStatus::ITEM_DROP_REQUEST:
     {
+        cout << "받은 패킷 데이터:" << PacketId << endl;
 		if (length < sizeof(ItemDropEvent))
 		{
 			cerr << "Invalid RoomInfo packet size" << endl;
@@ -600,6 +669,7 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
     }
     case PlayerPacketStatus::ITEM_EQUIP_REQUEST:
     {
+        cout << "받은 패킷 데이터:" << PacketId << endl;
 		if (length < sizeof(ItemEquipEvent))
 		{
 			cerr << "Invalid RoomInfo packet size" << endl;
@@ -624,7 +694,7 @@ void ProcessPacket(char* data, size_t length, SOCKET client_sock)
     UINT16 PacketId = 0;
     std::memcpy(&PacketId, data + sizeof(UINT16), sizeof(UINT16)); // offset 2~3
 
-    cout << "[DEBUG] 받은 PacketId: " << PacketId << endl;
+   // cout << "[DEBUG] 받은 PacketId: " << PacketId << endl;
 
     // payload: PacketId 이후의 나머지 데이터
     char* payload = data + sizeof(UINT16); // 이 포인터부터 PacketId + 구조체 전체
@@ -709,7 +779,7 @@ int main() {
             }
         }
         else if (overEx->state == OverlState::RECV) {
-            cout << "[DEBUG] RECV 상태 진입, 수신된 바이트 수: " << bytesTransferred << endl;
+            //cout << "[DEBUG] RECV 상태 진입, 수신된 바이트 수: " << bytesTransferred << endl;
 
             if (bytesTransferred == 0) {
                 cout << "클라이언트 연결 종료\n";
@@ -726,13 +796,13 @@ int main() {
             }
             auto& user = userIt->second;
 
-            cout << "[DEBUG] 수신된 첫 바이트: " << (unsigned int)(uint8_t)overEx->buf[0] << endl;
+          /*  cout << "[DEBUG] 수신된 첫 바이트: " << (unsigned int)(uint8_t)overEx->buf[0] << endl;
             cout << "[DEBUG] 두 번째 바이트: " << (unsigned int)(uint8_t)overEx->buf[1] << endl;
             cout << "[DEBUG] 전체 수신 바이트 HEX: ";
             for (int i = 0; i < bytesTransferred; ++i) {
                 printf("%02X ", (unsigned char)overEx->buf[i]);
             }
-            printf("\n");
+            printf("\n");*/
 
             user->recvBuffer.insert(
                 user->recvBuffer.end(),

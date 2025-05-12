@@ -69,7 +69,7 @@ void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerSt
 			player.rotationY = SomePlayer.rotationY;
 			player.rotationZ = SomePlayer.rotationZ;
     
-            cout << "플레이어 위치 업데이트 완료" << endl;
+           // cout << "플레이어 위치 업데이트 완료" << endl;
             return;
         }
     }
@@ -88,11 +88,9 @@ bool InventoryItemAdd(ItemPickupEvent& PickItem)
         {
             if (strcmp(player.user->m_userId, playerId) == 0)
             {
-                // 여기에 원하는 처리 수행
                 cout << "플레이어가 속한 방 ID: " << roomId << endl;
                 cout << "아이템 ID: " << PickItem.itemID << ", 오브젝트 ID: " << PickItem.WorldObjectID << endl;
 
-                // 예: 인벤토리에 아이템 추가
                 for (auto& slot : player.inven.iteminfo)
                 {
                     if (slot == 0)
@@ -196,7 +194,8 @@ bool InventoryItemEquip(ItemEquipEvent& eqItem)
 				cout << "플레이어가 속한 방 ID: " << roomId << endl;
 				cout << "아이템 ID: " << eqItem.itemID << ", 슬롯 인덱스: " << eqItem.slotIndex << endl;
 				// 예: 인벤토리에 아이템 추가
-				player.EquipItem = eqItem.itemID;
+				player.EquipItemID = eqItem.itemID;
+                player.playerEquiptHand = eqItem.isEquipped;
                 return true;
 				found = true;
 				break;
