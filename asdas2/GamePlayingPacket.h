@@ -18,7 +18,8 @@ struct GamePlayer {
     float x,y,z;
 	float rotationX, rotationY, rotationZ;
     Inventory inven;
-	UINT16 EquipItem;
+	UINT16 EquipItemID;
+	UINT16 playerEquiptHand;
 };
 
 inline unordered_map<UINT16, vector<GamePlayer>> GameStartUsers;

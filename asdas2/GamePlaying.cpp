@@ -126,29 +126,39 @@ bool InventoryItemRemove(ItemDropEvent& DropItem)
         {
             if (strcmp(player.user->m_userId, playerId) == 0)
             {
-                // 여기에 원하는 처리 수행
                 cout << "플레이어가 속한 방 ID: " << roomId << endl;
-                cout << "아이템 ID: " << DropItem.itemID << ", 오브젝트 ID: " << DropItem.itemID << endl;
+                cout << "요청된 제거 슬롯 인덱스: " << DropItem.slotIndex << endl;
 
-                // 예: 인벤토리에 아이템 추가
-                for (auto& slot : player.inven.iteminfo)
+                size_t index = DropItem.slotIndex;
+
+                if (index < player.inven.iteminfo.size())
                 {
-                    if (slot == DropItem.itemID)
+                    cout << "슬롯에 있는 아이템 ID: " << player.inven.iteminfo[index] << endl;
+                    if (player.inven.iteminfo[index] == DropItem.itemID)
                     {
-                        slot = 0;
+                        player.inven.iteminfo[index] = 0;
                         cout << "아이템 제거 완료" << endl;
                         return true;
-                        break;
+                    }
+                    else
+                    {
+                        cout << "[경고] 슬롯에 있는 아이템이 일치하지 않음!" << endl;
                     }
                 }
+                else
+                {
+                    cout << "[에러] 슬롯 인덱스 범위 초과" << endl;
+                }
 
-                found = true;
-                break;
+                return false; // 잘못된 인덱스거나 아이템이 다름
             }
         }
-        if (found) break;
     }
+
+    cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
+    return false;
 }
+
 bool InventoryItemUse(ItemUseEvent& UseItem)
 {
 	const char* playerId = UseItem.playerId;
@@ -182,25 +192,25 @@ bool InventoryItemUse(ItemUseEvent& UseItem)
 }
 bool InventoryItemEquip(ItemEquipEvent& eqItem)
 {
-	const char* playerId = eqItem.playerId;
-	bool found = false;
-	for (auto& [roomId, players] : GameStartUsers)
-	{
-		for (auto& player : players)
-		{
-			if (strcmp(player.user->m_userId, playerId) == 0)
-			{
-				// 여기에 원하는 처리 수행
-				cout << "플레이어가 속한 방 ID: " << roomId << endl;
-				cout << "아이템 ID: " << eqItem.itemID << ", 슬롯 인덱스: " << eqItem.slotIndex << endl;
-				// 예: 인벤토리에 아이템 추가
-				player.EquipItemID = eqItem.itemID;
+    const char* playerId = eqItem.playerId;
+
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (auto& player : players)
+        {
+            if (strcmp(player.user->m_userId, playerId) == 0)
+            {
+                cout << "플레이어가 속한 방 ID: " << roomId << endl;
+                cout << "아이템 ID: " << eqItem.itemID << ", 슬롯 인덱스: " << eqItem.slotIndex << endl;
+
+                player.EquipItemID = eqItem.itemID;
                 player.playerEquiptHand = eqItem.isEquipped;
+
                 return true;
-				found = true;
-				break;
-			}
-		}
-		if (found) break;
-	}
+            }
+        }
+    }
+
+    cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
+    return false;
 }

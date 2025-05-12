@@ -303,6 +303,9 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
     else {
         response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
     }
+    WorldObjectSpawnPacket spawnPacket;
+    spawnPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+    spawnPacket.itemID = response.itemID;
     for (auto& [roomId, players] : GameStartUsers)
     {
         for (GamePlayer& player : players)
@@ -314,7 +317,7 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
 					strcpy(response.playerId, player.user->m_userId);
 					response.itemID = player.inven.iteminfo[RemoveItem.slotIndex];
 					response.slotIndex = RemoveItem.slotIndex;
-					response.posX = RemoveItem.posX;
+                    spawnPacket.posX = RemoveItem.posX;
 					response.posY = RemoveItem.posY;
 					response.posZ = RemoveItem.posZ;
 					response.rotX = RemoveItem.rotX;
@@ -328,12 +331,10 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
             }
         }
     }
-	std::vector<char> serializedData = response.serialize();
-	SendPacket(serializedData, client_sock);
+	/*std::vector<char> serializedData = response.serialize();
+	SendPacket(serializedData, client_sock);*/
    
-    WorldObjectSpawnPacket spawnPacket;
-    spawnPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
-    spawnPacket.itemID = response.itemID;
+    
 
     spawnPacket.worldObjectID = ItemSpawnManager(spawnPacket);
     spawnPacket.posX = response.posX;
@@ -368,6 +369,7 @@ void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
     }
 	strcpy(response.playerId, UseItem.playerId);
 	response.itemID = UseItem.itemID;
+	response.slotIndex = UseItem.slotIndex;
 	std::vector<char> serializedData = response.serialize();
 	SendPacket(serializedData, client_sock);
 }
@@ -391,8 +393,10 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
                 {
                     response.isEquipped = player.playerEquiptHand;
                     response.itemID = player.EquipItemID;
+                    response.slotIndex = eqItem.slotIndex; 
                 }
                 break;
+
             }
         }
     }
