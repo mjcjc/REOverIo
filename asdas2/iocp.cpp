@@ -293,17 +293,10 @@ void InventoryAddPacket(ItemPickupEvent& PickItem, SOCKET client_sock)
 }
 void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
 {
-	ItemDropEvent response;
-    if (InventoryItemRemove(RemoveItem))
-    {
-        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
-    }
-    else {
-        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
-    }
-    WorldObjectSpawnPacket spawnPacket;
-    spawnPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
-    spawnPacket.itemID = response.itemID;
+    ItemDropEvent response;
+
+
+    UINT16 backupItemID = 0;
     for (auto& [roomId, players] : GameStartUsers)
     {
         for (GamePlayer& player : players)
@@ -312,49 +305,82 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
             {
                 if (RemoveItem.slotIndex < player.inven.iteminfo.size())
                 {
-					strcpy(response.playerId, player.user->m_userId);
-					response.itemID = player.inven.iteminfo[RemoveItem.slotIndex];
-					response.slotIndex = RemoveItem.slotIndex;
-                    response.posX = RemoveItem.posX;
-					response.posY = RemoveItem.posY;
-					response.posZ = RemoveItem.posZ;
-					response.rotX = RemoveItem.rotX;
-					response.rotY = RemoveItem.rotY;
-					response.rotZ = RemoveItem.rotZ;
-					response.velocityX = RemoveItem.velocityX;
-					response.velocityY = RemoveItem.velocityY;
-					response.velocityZ = RemoveItem.velocityZ;
+                    backupItemID = player.inven.iteminfo[RemoveItem.slotIndex];
                 }
                 break;
             }
         }
     }
-	/*std::vector<char> serializedData = response.serialize();
-	SendPacket(serializedData, client_sock);*/
-   
-    
 
-    spawnPacket.worldObjectID = ItemSpawnManager(spawnPacket);
-    spawnPacket.posX = response.posX;
-    spawnPacket.posY = response.posY;
-    spawnPacket.posZ = response.posZ;
-    spawnPacket.rotX = response.rotX;
-    spawnPacket.rotY = response.rotY;
-    spawnPacket.rotZ = response.rotZ;
-    spawnPacket.velocityX = response.velocityX;
-    spawnPacket.velocityY = response.velocityY;
-    spawnPacket.velocityZ = response.velocityZ;
+    if (InventoryItemRemove(RemoveItem))
+    {
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+    }
+    else {
+        response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_FAILED);
+    }
 
-    // 클라이언트들에게 전송
+    WorldObjectSpawnPacket spawnPacket;
+    spawnPacket.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_DROP_SUCCESS);
+    spawnPacket.itemID = backupItemID;
+
     for (auto& [roomId, players] : GameStartUsers)
     {
         for (GamePlayer& player : players)
         {
-            std::vector<char> serializedData = spawnPacket.serialize();
-            SendPacket(serializedData, player.sock);
+            if (strcmp(player.user->m_userId, RemoveItem.playerId) == 0)
+            {
+                if (RemoveItem.slotIndex < player.inven.iteminfo.size())
+                {
+                    strncpy(spawnPacket.playerId, player.user->m_userId, sizeof(spawnPacket.playerId) - 1);
+                    spawnPacket.playerId[sizeof(spawnPacket.playerId) - 1] = '\0';
+
+                    spawnPacket.worldObjectID = ItemSpawnManager(spawnPacket);
+                    response.slotIndex = RemoveItem.slotIndex;
+
+                    spawnPacket.posX = RemoveItem.posX;
+                    spawnPacket.posY = RemoveItem.posY;
+                    spawnPacket.posZ = RemoveItem.posZ;
+                    spawnPacket.rotX = RemoveItem.rotX;
+                    spawnPacket.rotY = RemoveItem.rotY;
+                    spawnPacket.rotZ = RemoveItem.rotZ;
+                    spawnPacket.velocityX = RemoveItem.velocityX;
+                    spawnPacket.velocityY = RemoveItem.velocityY;
+                    spawnPacket.velocityZ = RemoveItem.velocityZ;
+                }
+                break;
+            }
         }
     }
+
+    // 방 찾아서 브로드캐스트
+    shared_ptr<RoomInfo> foundRoom = nullptr;
+    for (auto& [roomId, roomInfo] : Rooms)
+    {
+        for (auto& user : roomInfo->userinfo)
+        {
+            if (strcmp(user->m_userId, RemoveItem.playerId) == 0)
+            {
+                foundRoom = roomInfo;
+                break;
+            }
+        }
+        if (foundRoom) break;
+    }
+
+    if (!foundRoom)
+    {
+        std::cerr << "[에러] 플레이어가 속한 방을 찾지 못함: " << RemoveItem.playerId << std::endl;
+        return;
+    }
+
+    for (auto& receiver : foundRoom->userinfo)
+    {
+        std::vector<char> serializedData = spawnPacket.serialize();
+        SendPacket(serializedData, receiver->sock);
+    }
 }
+
 void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
 {
 	ItemUseEvent response;
@@ -399,10 +425,15 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
             }
         }
     }
-
-    strcpy(response.playerId, eqItem.playerId);
-    std::vector<char> serializedData = response.serialize();
-    SendPacket(serializedData, client_sock);
+    for (auto& [roomId, players] : GameStartUsers)
+    {
+        for (GamePlayer& player : players)
+        {
+            strcpy(response.playerId, eqItem.playerId);
+            std::vector<char> serializedData = response.serialize();
+            SendPacket(serializedData, player.sock);
+        }
+    }
 }
 
 void MoveBroadCast(PlayerStatus& player)
