@@ -17,7 +17,6 @@
         UINT64 randomPart = dist(rng);
         return timestamp ^ randomPart; // 시간과 랜덤을 XOR해서 고유성 확보
     }
-    // MaxItemCount 선언부 (cpp 내부에만 있어야 함)
 
 
     int ItemSpawnManager(WorldObjectSpawnPacket& ClObj)

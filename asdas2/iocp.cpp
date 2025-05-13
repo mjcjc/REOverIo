@@ -195,12 +195,13 @@ void RoomUpdateSendPacket(RoomNOtify& room, SOCKET client_sock)
     {
         RoomFixedUpdate(room, Rooms);
         room.packetId = static_cast<UINT16>(PacketStatus::ROOM_UPDATE_SUCCESS);
+        
     }
     else {
         room.packetId = static_cast<UINT16>(PacketStatus::ROOM_UPDATE_FAIL);
     }
     std::vector<char> serializedData = room.serialize();
-
+    
     SendPacket(serializedData, client_sock);
     RoomListSend();
 
@@ -235,7 +236,7 @@ void RoomListSend()
                 strcpy_s(response.roomName, room->roomName);
                 strcpy_s(response.hostName, room->hostName);
                 response.userCount = room->userCount;
-                response.maxuserCount = room->maxUserCount;
+                response.maxuserCount = room->roomSet.maxUserCount;
                 response.roomMode = room->RoomMode;
                 std::vector<char> serializedData = response.serialize();
                 SendPacket(serializedData, user->sock);
@@ -380,7 +381,6 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
         SendPacket(serializedData, receiver->sock);
     }
 }
-
 void InventoryUsePacket(ItemUseEvent& UseItem, SOCKET client_sock)
 {
 	ItemUseEvent response;
@@ -435,7 +435,12 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
         }
     }
 }
+void missionState(missionSeed& misPacket, SOCKET client_sock)
+{
 
+    MainMissiongauge(misPacket);
+
+}
 void MoveBroadCast(PlayerStatus& player)
 {
     InGamePlayer(Rooms, player); // 위치 갱신
@@ -714,7 +719,15 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
         InventoryEquipPacket(packet, client_sock);
 		break;
     }
-
+    case PlayerPacketStatus::MISSION_NOTIFY:
+        if (length < sizeof(missionSeed))
+        {
+            cerr << "Invalid missionSeed packet size" << endl;
+        }
+        missionSeed packet = missionSeed::deserialize(
+            vector<char>(data, data + sizeof(missionSeed))
+        );
+        missionState(packet, client_sock);
     }
 }
 void ProcessPacket(char* data, size_t length, SOCKET client_sock)

@@ -4,10 +4,13 @@
 
 void InitPlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart& info)
 {
-    //TODO 유저별로 직업 설정 안됨
     uint32_t roomId = info.roomID;
-   
-    for (auto& user : Rooms[roomId]->userinfo)
+    auto& userList = Rooms[roomId]->userinfo;
+
+    std::vector<Job> jobs = AssignJobs(static_cast<int>(userList.size()));
+    int jobIndex = 0;
+
+    for (auto& user : userList)
     {
         GamePlayer player;
         player.user = user;
@@ -18,13 +21,18 @@ void InitPlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart&
         player.rotationX = 0;
         player.rotationY = 0;
         player.rotationZ = 0;
+        player.playerJob = jobs[jobIndex++];
+
+        // 인벤토리 초기화
         for (int i = 0; i < 4; ++i)
         {
             player.inven.iteminfo[i] = 0;
         }
+
         GameStartUsers[roomId].push_back(player);
     }
 }
+
 void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerStatus& SomePlayer)
 {
     shared_ptr<RoomInfo> foundRoom = nullptr;
@@ -114,7 +122,6 @@ bool InventoryItemAdd(ItemPickupEvent& PickItem)
         cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
     }
 }
-
 bool InventoryItemRemove(ItemDropEvent& DropItem)
 {
     const char* playerId = DropItem.playerId;
@@ -158,7 +165,6 @@ bool InventoryItemRemove(ItemDropEvent& DropItem)
     cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
     return false;
 }
-
 bool InventoryItemUse(ItemUseEvent& UseItem)
 {
 	const char* playerId = UseItem.playerId;
@@ -213,4 +219,41 @@ bool InventoryItemEquip(ItemEquipEvent& eqItem)
 
     cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
     return false;
+}
+
+std::vector<Job> AssignJobs(int playerCount)
+{
+    std::vector<Job> jobs;
+
+    if (playerCount < 4) {
+        // 최소 4명은 되어야 모든 직업 가능
+        throw std::runtime_error("Not enough players for full role distribution.");
+    }
+
+    // 1. King 역할 2개 고정 배정
+    jobs.push_back(Job::MafiaKing);
+    jobs.push_back(Job::PoliceKing);
+
+    // 2. 남은 인원 수
+    int remaining = playerCount - 2;
+
+    // 3. 반반 나눔 (짝수면 정확히 반, 홀수면 Police 쪽에 더 줄 수도 있음)
+    int mafiaCount = remaining / 2;
+    int policeCount = remaining - mafiaCount;
+
+    jobs.insert(jobs.end(), mafiaCount, Job::Mafia);
+    jobs.insert(jobs.end(), policeCount, Job::police);
+
+    // 4. 셔플
+    std::shuffle(jobs.begin(), jobs.end(), std::mt19937{ std::random_device{}() });
+
+    return jobs;
+}
+
+//메인미션 판단하는 루프 필요
+//
+void MainMissiongauge(missionSeed & misPacket)
+{
+    misPacket.gauge;
+    misPacket.itemId;
 }

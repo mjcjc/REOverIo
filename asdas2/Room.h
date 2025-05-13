@@ -8,6 +8,8 @@ struct RoomSet {
 	uint32_t DayTime;
 	uint32_t vote;
 	uint32_t nigthTime;
+	uint32_t policeCount;
+	UINT16 MafiaCount;
 	
 };
 

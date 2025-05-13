@@ -11,6 +11,12 @@ struct Inventory {
         iteminfo.fill(0);
     }
 };
+enum Job : UINT16 {
+    Mafia,
+    police,
+    MafiaKing,
+	PoliceKing,
+};
 
 struct GamePlayer {
     shared_ptr<User> user;
@@ -18,6 +24,7 @@ struct GamePlayer {
     float x,y,z;
 	float rotationX, rotationY, rotationZ;
     Inventory inven;
+	UINT16 playerJob;
 	UINT16 EquipItemID;
 	UINT16 playerEquiptHand;
 };
@@ -30,3 +37,4 @@ bool InventoryItemAdd(ItemPickupEvent& PickItem);
 bool InventoryItemRemove(ItemDropEvent& DropItem);
 bool InventoryItemUse(ItemUseEvent& UseItem);
 bool InventoryItemEquip(ItemEquipEvent& eqItem);
+void MainMissiongauge(missionSeed & misPacket);

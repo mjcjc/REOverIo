@@ -102,11 +102,11 @@ enum class PlayerPacketStatus : UINT16
     ITEM_DROP_FAILED = 1032,
 
     // ===== ITEM: ÀåÂø =====
-    ITEM_EQUIP_REQUEST = 1040 ,
+    ITEM_EQUIP_REQUEST = 1040,
     ITEM_EQUIP_SUCCESS = 1041,
     ITEM_EQUIP_FAILED = 1042,
 
-
+    MISSION_NOTIFY = 1050,
 };
 
 #define ADD_SERIALIZE_FUNCS(T) \
@@ -334,5 +334,15 @@ struct WorldObjectSpawnPacket
 
     ADD_SERIALIZE_FUNCS(WorldObjectSpawnPacket)
 };
+struct missionSeed
+{
+    UINT16 packetId;
+    UINT16 itemId;
+    uint32_t gauge;
+    UINT16 Animation;
+
+    ADD_SERIALIZE_FUNCS(missionSeed)
+};
+
 #pragma pack(pop)
 
