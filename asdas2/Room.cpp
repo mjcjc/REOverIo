@@ -26,7 +26,7 @@ int RoomMake(RoomCreateRequest& room, unordered_map<uint32_t, shared_ptr<RoomInf
     newRoom->roomId = GenerateRoomId();
     newRoom->userCount = 0;
     newRoom->RoomMode = room.RoomMode;
-    newRoom->maxUserCount = room.MaxCount;
+    newRoom->roomSet.maxUserCount = room.MaxCount;
     Rooms[newRoom->roomId] = newRoom;
     cout << "방 만들때 id" << newRoom->roomId << endl;
     return newRoom->roomId;
@@ -43,7 +43,7 @@ bool RoomInSide(RoomRequest& reqroom, unordered_map<uint32_t, shared_ptr<RoomInf
         return false;
     }
     shared_ptr<RoomInfo> Inroom = roomId->second;
-    if (Inroom->userCount >= Inroom->maxUserCount  ) {
+    if (Inroom->userCount >= Inroom->roomSet.maxUserCount) {
         cout << "Room Max!" << endl;
         return false;
     }
@@ -128,11 +128,14 @@ void RoomFixedUpdate(RoomNOtify& FixRoom, unordered_map<uint32_t, shared_ptr<Roo
 	}
 
     shared_ptr<RoomInfo> roomUpdate = roomId->second;
+
     roomUpdate->RoomMode = FixRoom.roomMode;
     roomUpdate->roomSet.DayTime = FixRoom.DayTime;
     roomUpdate->roomSet.D_day = FixRoom.D_day;
     roomUpdate->roomSet.nigthTime = FixRoom.nigthTime;
     roomUpdate->roomSet.vote = FixRoom.vote;
+    roomUpdate->roomSet.maxUserCount = FixRoom.MaxCount;
+	roomUpdate->roomSet.policeCount = FixRoom.policeCount;
 
 	cout << "방 정보 수정" << endl;
 }

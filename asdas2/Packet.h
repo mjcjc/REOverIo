@@ -336,8 +336,10 @@ struct WorldObjectSpawnPacket
 };
 struct missionSeed
 {
+    // 성장치, 건상상태, 질병걸릴확률 3가지의 값의 공유가 중요
     UINT16 packetId;
     UINT16 itemId;
+    UINT16 health;
     uint32_t gauge;
     UINT16 Animation;
 

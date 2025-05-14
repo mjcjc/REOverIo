@@ -9,8 +9,7 @@ struct RoomSet {
 	uint32_t vote;
 	uint32_t nigthTime;
 	uint32_t policeCount;
-	UINT16 MafiaCount;
-	
+	uint32_t maxUserCount;
 };
 
 typedef struct RoomInfo {
@@ -22,7 +21,6 @@ typedef struct RoomInfo {
 	char hostName[32];
 	UINT16 RoomMode;//방모드
 	uint32_t userCount;//유저현재
-	uint32_t maxUserCount;//유저 최대
 	
 	
 }RoomInfo;
