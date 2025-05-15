@@ -277,20 +277,25 @@ void InitGameObject(WorldObjectSpawnPacket& ClObj)
 {
     ItemSpawnManager(ClObj);
 }
-void InventoryAddPacket(ItemPickupEvent& PickItem, SOCKET client_sock)
+void InventoryAddPacket(ItemPickupEvent& PickItemReq, SOCKET client_sock)
 {
-	ItemPickupEvent response;
-    if (InventoryItemAdd(PickItem))
-    {
-	    response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_SUCCESS);
+    WorldObjectSpawnPacket spawnObj;
+    spawnObj.itemID = PickItemReq.itemID;
+    strncpy(spawnObj.playerId, PickItemReq.playerId, sizeof(spawnObj.playerId));
+
+    InitGameObject(spawnObj); 
+
+    ItemPickupEvent pickupAdd;
+    pickupAdd.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_FAILED);
+    strcpy(pickupAdd.playerId, PickItemReq.playerId);
+    pickupAdd.itemID = spawnObj.itemID;
+    pickupAdd.WorldObjectID = spawnObj.worldObjectID;
+
+    if (InventoryItemAdd(pickupAdd)) {
+        pickupAdd.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_SUCCESS);
     }
-    else {
-		response.packetID = static_cast<UINT16>(PlayerPacketStatus::ITEM_PICKUP_FAILED);
-    }
-	strcpy(response.playerId, PickItem.playerId);
-	response.itemID = PickItem.itemID;
-	std::vector<char> serializedData = response.serialize();
-	SendPacket(serializedData, client_sock);
+
+    SendPacket(pickupAdd.serialize(), client_sock);
 }
 void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
 {
@@ -304,9 +309,9 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
         {
             if (strcmp(player.user->m_userId, RemoveItem.playerId) == 0)
             {
-                if (RemoveItem.slotIndex < player.inven.iteminfo.size())
+                if (RemoveItem.slotIndex < player.inven.slots.size())
                 {
-                    backupItemID = player.inven.iteminfo[RemoveItem.slotIndex];
+                    backupItemID = player.inven.slots[RemoveItem.slotIndex].itemID;
                 }
                 break;
             }
@@ -331,7 +336,7 @@ void InventoryRemovePacket(ItemDropEvent& RemoveItem, SOCKET client_sock)
         {
             if (strcmp(player.user->m_userId, RemoveItem.playerId) == 0)
             {
-                if (RemoveItem.slotIndex < player.inven.iteminfo.size())
+                if (RemoveItem.slotIndex < player.inven.slots.size())
                 {
                     strncpy(spawnPacket.playerId, player.user->m_userId, sizeof(spawnPacket.playerId) - 1);
                     spawnPacket.playerId[sizeof(spawnPacket.playerId) - 1] = '\0';
@@ -415,10 +420,10 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
             if (strcmp(player.user->m_userId, eqItem.playerId) == 0)
             {
             
-                if (eqItem.slotIndex < player.inven.iteminfo.size())
+                if (eqItem.slotIndex < player.inven.slots.size())
                 {
                     response.slotIndex = eqItem.slotIndex;
-                    response.itemID = player.inven.iteminfo[eqItem.slotIndex];
+                    response.itemID = player.inven.slots[eqItem.slotIndex].itemID;
                     response.isEquipped = player.playerEquiptHand;
                 }
                 break;
@@ -435,10 +440,10 @@ void InventoryEquipPacket(ItemEquipEvent& eqItem, SOCKET client_sock)
         }
     }
 }
-void missionState(missionSeed& misPacket, SOCKET client_sock)
+void missionState(plantMission& planePacket, SOCKET client_sock)
 {
 
-    MainMissiongauge(misPacket);
+    PlantGauge(planePacket);
 
 }
 void MoveBroadCast(PlayerStatus& player)
@@ -636,22 +641,9 @@ void ProcessLobbyPacket(UINT16 PacketId, size_t length, SOCKET client_sock, char
 void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, char const* data)
 {
     auto ingamestatus = static_cast<PlayerPacketStatus>(PacketId);
-    
 
     switch (ingamestatus)
     {
-   /* case PlayerPacketStatus::ITEM_START:
-	{
-		if (length < sizeof(WorldObjectSpawnPacket))
-		{
-			cerr << "Invalid RoomInfo packet size" << endl;
-		}
-        WorldObjectSpawnPacket packet = WorldObjectSpawnPacket::deserialize(
-			std::vector<char>(data, data + sizeof(WorldObjectSpawnPacket))
-		);
-		InitGameObject(packet);
-		break;
-	}*/
     case PlayerPacketStatus::PLAYER_STATUS_NOTIFY:
     {
         if (length < sizeof(PlayerStatus))
@@ -720,12 +712,12 @@ void ProcessInGamePacket(UINT16 PacketId, size_t length, SOCKET client_sock, cha
 		break;
     }
     case PlayerPacketStatus::MISSION_NOTIFY:
-        if (length < sizeof(missionSeed))
+        if (length < sizeof(plantMission))
         {
             cerr << "Invalid missionSeed packet size" << endl;
         }
-        missionSeed packet = missionSeed::deserialize(
-            vector<char>(data, data + sizeof(missionSeed))
+        plantMission packet = plantMission::deserialize(
+            vector<char>(data, data + sizeof(plantMission))
         );
         missionState(packet, client_sock);
     }

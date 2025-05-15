@@ -23,16 +23,9 @@ void InitPlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, RoomStart&
         player.rotationZ = 0;
         player.playerJob = jobs[jobIndex++];
 
-        // 인벤토리 초기화
-        for (int i = 0; i < 4; ++i)
-        {
-            player.inven.iteminfo[i] = 0;
-        }
-
         GameStartUsers[roomId].push_back(player);
     }
 }
-
 void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerStatus& SomePlayer)
 {
     shared_ptr<RoomInfo> foundRoom = nullptr;
@@ -84,7 +77,6 @@ void InGamePlayer(unordered_map<uint32_t, shared_ptr<RoomInfo>>& Rooms, PlayerSt
 
     cout << "GameStartUser 안에서도 해당 플레이어를 찾지 못했음" << endl;
 }
-
 bool InventoryItemAdd(ItemPickupEvent& PickItem)
 {
     const char* playerId = PickItem.playerId;
@@ -99,11 +91,12 @@ bool InventoryItemAdd(ItemPickupEvent& PickItem)
                 cout << "플레이어가 속한 방 ID: " << roomId << endl;
                 cout << "아이템 ID: " << PickItem.itemID << ", 오브젝트 ID: " << PickItem.WorldObjectID << endl;
 
-                for (auto& slot : player.inven.iteminfo)
+                for (auto& slot : player.inven.slots)
                 {
-                    if (slot == 0)
+                    if (slot.itemID == 0)
                     {
-                        slot = PickItem.itemID;
+                        slot.itemID = PickItem.itemID;
+                        slot.worldObjectID = PickItem.WorldObjectID;
                         cout << "아이템 추가 완료" << endl;
                         return true;
                         break;
@@ -138,12 +131,13 @@ bool InventoryItemRemove(ItemDropEvent& DropItem)
 
                 size_t index = DropItem.slotIndex;
 
-                if (index < player.inven.iteminfo.size())
+                if (index < player.inven.slots.size())
                 {
-                    cout << "슬롯에 있는 아이템 ID: " << player.inven.iteminfo[index] << endl;
-                    if (player.inven.iteminfo[index] == DropItem.itemID)
+                    cout << "슬롯에 있는 아이템 ID: " << player.inven.slots[index].itemID << endl;
+                    if (player.inven.slots[index].itemID == DropItem.itemID)
                     {
-                        player.inven.iteminfo[index] = 0;
+                        player.inven.slots[index].itemID = 0;
+                        player.inven.slots[index].worldObjectID = 0;
                         cout << "아이템 제거 완료" << endl;
                         return true;
                     }
@@ -179,11 +173,12 @@ bool InventoryItemUse(ItemUseEvent& UseItem)
 				cout << "플레이어가 속한 방 ID: " << roomId << endl;
 				cout << "아이템 ID: " << UseItem.itemID << ", 슬롯 인덱스: " << UseItem.slotIndex << endl;
 				// 예: 인벤토리에 아이템 추가
-				for (auto& slot : player.inven.iteminfo)
+				for (auto& slot : player.inven.slots)
 				{
-					if (slot == UseItem.itemID)
+					if (slot.itemID == UseItem.itemID)
 					{
-						slot = 0;
+						slot.itemID = 0;
+                        slot.worldObjectID = 0;
 						cout << "아이템 사용 완료" << endl;
 						return true;
 						break;
@@ -211,7 +206,8 @@ bool InventoryItemEquip(ItemEquipEvent& eqItem)
 
                 player.EquipItemID = eqItem.itemID;
                 player.playerEquiptHand = eqItem.isEquipped;
-                player.inven.iteminfo[eqItem.slotIndex] = eqItem.itemID;
+                player.inven.slots[eqItem.slotIndex].itemID = eqItem.itemID;
+                
                 return true;
             }
         }
@@ -220,8 +216,7 @@ bool InventoryItemEquip(ItemEquipEvent& eqItem)
     cout << "[경고] 해당 플레이어를 GameStartUsers에서 찾을 수 없음: " << playerId << endl;
     return false;
 }
-
-std::vector<Job> AssignJobs(int playerCount)
+vector<Job> AssignJobs(int playerCount)
 {
     std::vector<Job> jobs;
 
@@ -249,11 +244,8 @@ std::vector<Job> AssignJobs(int playerCount)
 
     return jobs;
 }
-
-//메인미션 판단하는 루프 필요
-//
-void MainMissiongauge(missionSeed & misPacket)
+void PlantGauge(plantMission& planepacket)
 {
-    misPacket.gauge;
-    misPacket.itemId;
+    
 }
+

@@ -1,32 +1,35 @@
-#pragma once  
-#include"deFine.h"  
-#include"Packet.h"  
-#include"User.h"
-#include"Room.h"
+// GamePlayingPacket.h
+#pragma once
+#include "deFine.h"
+#include "Packet.h"
+#include "User.h"
+#include "Room.h"
 
+struct InventorySlot {
+    UINT16 itemID = 0;
+    UINT16 worldObjectID = 0;
+};
 
 struct Inventory {
-    array<UINT16, 4> iteminfo;
-    Inventory() {
-        iteminfo.fill(0);
-    }
+    std::array<InventorySlot, 4> slots;
 };
+
 enum Job : UINT16 {
     Mafia,
     police,
     MafiaKing,
-	PoliceKing,
+    PoliceKing,
 };
 
 struct GamePlayer {
     shared_ptr<User> user;
     SOCKET sock;
-    float x,y,z;
-	float rotationX, rotationY, rotationZ;
+    float x, y, z;
+    float rotationX, rotationY, rotationZ;
     Inventory inven;
-	UINT16 playerJob;
-	UINT16 EquipItemID;
-	UINT16 playerEquiptHand;
+    UINT16 playerJob;
+    UINT16 EquipItemID;
+    UINT16 playerEquiptHand;
 };
 
 inline unordered_map<UINT16, vector<GamePlayer>> GameStartUsers;
@@ -37,4 +40,4 @@ bool InventoryItemAdd(ItemPickupEvent& PickItem);
 bool InventoryItemRemove(ItemDropEvent& DropItem);
 bool InventoryItemUse(ItemUseEvent& UseItem);
 bool InventoryItemEquip(ItemEquipEvent& eqItem);
-void MainMissiongauge(missionSeed & misPacket);
+void PlaneGauge(planeMisson& planepacket);

@@ -334,17 +334,47 @@ struct WorldObjectSpawnPacket
 
     ADD_SERIALIZE_FUNCS(WorldObjectSpawnPacket)
 };
-struct missionSeed
+struct planeMisson
 {
-    // 성장치, 건상상태, 질병걸릴확률 3가지의 값의 공유가 중요
-    UINT16 packetId;
-    UINT16 itemId;
-    UINT16 health;
-    uint32_t gauge;
-    UINT16 Animation;
 
-    ADD_SERIALIZE_FUNCS(missionSeed)
+     UINT16 ObjectID; //식물화분은 여러개가 있기에 어떤 식물의 상태가 반영된건지를 판단쳐야한다.
+     UINT16 m_bIsSeedPlanted; //씨앗 심어진 여부
+     UINT16 _m_bIsInteracting;//상호작용 여부 가능
+     float m_fpGrowth;//현재 성장치 0 ~ 100
+     float m_fpMaxGrowth;//성장최대치 100
+     float m_fpHealthStatus;//건강 상태 0 ~ 100 %  // 온도계, 습도계, 공기질, 수분량 값을 읽어와서 변동을 줄 것.
+     float m_fpDiseaseChance;//질병 걸릴 확률 100 ~ 0 %
+     float m_fpWaterLevel;//수분량 0 ~ 100 적정량은 70 ~ 80
+
+    ADD_SERIALIZE_FUNCS(planeMisson)
 };
 
+struct BoilerState
+{
+     UINT16 m_bIsSabotaged; // 사보타지 적용 여부
+     UINT16 _m_bIsInteracting; // 사람이 쓰고 있는지 여부
+     float m_fpRepair; // 수리 게이지 저장 0 ~ 100
+
+     int m_nCoalAmount; // 석탄 개수 카운트 0 ~ 10  
+
+     float m_fpTemperture;// 온도 값을 저장 0 ~ 100 / 80 ~ 부터 가열 시작 
+     float m_fpHeatValue; // 가열 수치 값 저장 0 ~ 100
+     ADD_SERIALIZE_FUNCS(BoilerState);
+};
+struct RoofVent
+{
+    UINT16 m_bIsSabotaged; // 사보타지 적용 여부 
+    float m_fpRepair; // 수리 게이지 0 ~ 100
+    float m_fpStrength; // 출력 세기 값 저장 0 ~ 10
+    UINT16 m_bIsPower; // 전원 ON/OFF 여부
+    UINT16 _m_bIsInteracting; // 오브젝트 상호작용 가능 여부
+    float  m_fpAir; // 산소 농도 값 저장 0 ~ 100
+    ADD_SERIALIZE_FUNCS(RoofVent)
+};
+struct packaging {
+    //public float m_fpPacking; // 포장 완료 게이지 0 ~ 100 ==> 포장 완료 게이지를 공유할 있을까?
+     UINT16 _m_bIsInteracting; // 상호작용 가능한지
+     UINT16 m_bIsObjectIn; //현재 제품이 들어 있는 상태인지 아닌지 여부
+};
 #pragma pack(pop)
 
